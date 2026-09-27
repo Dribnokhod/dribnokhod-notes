@@ -211,7 +211,7 @@ textarea {
   position: fixed;
   inset: 0 auto 0 0;
   overflow: auto;
-  z-index: 10
+  z-index: 100
 }
 
 .brand {
@@ -228,13 +228,6 @@ textarea {
 
 .sideHead>div {
   display: flex
-}
-
-.close {
-  display: none;
-  border: 0;
-  background: none;
-  font-size: 25px
 }
 
 .treeNote,
@@ -288,6 +281,10 @@ summary:hover {
 }
 
 .hamb {
+  display: none
+}
+
+.sideBackdrop {
   display: none
 }
 
@@ -784,8 +781,18 @@ summary:hover {
     transform: none
   }
 
-  .close {
-    display: block
+  .sideBackdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: rgba(0, 0, 0, .34);
+    backdrop-filter: blur(1px);
+    cursor: default
   }
 
   .page {

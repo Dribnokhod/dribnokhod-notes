@@ -874,9 +874,6 @@ function Notes() {
           </a>
           <div>
             <ThemeButton />
-            <button className="close" onClick={() => setSide(false)}>
-              ×
-            </button>
           </div>
         </div>
 
@@ -921,6 +918,15 @@ function Notes() {
           ) : null}
         </div>
       </aside>
+
+      {side && (
+        <button
+          className="sideBackdrop"
+          type="button"
+          aria-label="Закрыть меню страниц"
+          onClick={() => setSide(false)}
+        />
+      )}
 
       <main className="page">
         <button className="hamb" onClick={() => setSide(true)}>
