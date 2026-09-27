@@ -1,0 +1,17 @@
+services:
+  backend:
+    build: ./backend
+    environment:
+      NOTES_ADMIN_PASSWORD: ${NOTES_ADMIN_PASSWORD:-change-me}
+      SECRET_KEY: ${SECRET_KEY:-change-this-secret}
+      NOTES_DIR: /data/notes
+      UPLOADS_DIR: /data/uploads
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+  frontend:
+    build: ./frontend
+    depends_on: [backend]
+    ports:
+      - "8090:80"
+    restart: unless-stopped
