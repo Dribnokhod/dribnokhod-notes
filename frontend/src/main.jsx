@@ -20,6 +20,7 @@ import {
   FolderPlus,
   Save,
   Trash2,
+  RotateCcw,
   LogOut,
   ExternalLink,
   Sun,
@@ -575,6 +576,8 @@ function Notes() {
   const [admin, setAdmin] = useState(false);
   const [edit, setEdit] = useState(false);
   const [side, setSide] = useState(false);
+  const [trashOpen, setTrashOpen] = useState(false);
+  const [trash, setTrash] = useState([]);
 
   let loadTree = () => api('/tree').then(setTree);
 
@@ -588,6 +591,7 @@ function Notes() {
   useEffect(() => {
     api('/me').then((x) => setAdmin(x.admin));
     loadTree();
+
     api('/start')
       .then((x) => {
         if (x.path) open(x.path);
@@ -605,7 +609,7 @@ function Notes() {
     if (!note) return;
 
     const title = note.meta.title || 'Без названия';
-    if (!confirm(`Удалить страницу «${title}»?\n\nЭто действие нельзя отменить.`)) return;
+    if (!confirm(`Переместить страницу «${title}» в корзину?`)) return;
 
     await api('/note?path=' + encodeURIComponent(note.path), { method: 'DELETE' });
 
@@ -618,6 +622,44 @@ function Notes() {
         if (x.path) open(x.path);
       })
       .catch(() => {});
+  };
+
+  let loadTrash = () => api('/trash').then(setTrash);
+
+  let showTrash = () => {
+    loadTrash();
+    setTrashOpen(true);
+  };
+
+  let restoreTrash = async (item) => {
+    try {
+      const x = await api('/trash/restore', {
+        method: 'POST',
+        body: JSON.stringify({ path: item.trash_path }),
+      });
+      await loadTree();
+      await loadTrash();
+      setTrashOpen(false);
+      open(x.path);
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  let deleteForever = async (item) => {
+    if (
+      !confirm(
+        `Удалить «${item.title}» навсегда?\n\nВосстановить страницу после этого будет нельзя.`
+      )
+    ) {
+      return;
+    }
+
+    await api('/trash?path=' + encodeURIComponent(item.trash_path), {
+      method: 'DELETE',
+    });
+
+    loadTrash();
   };
 
   let create = () => {
@@ -686,6 +728,12 @@ function Notes() {
         <Tree items={tree} onOpen={open} />
 
         <div className="sideBottom">
+          {admin && (
+            <button className="trashOpenBtn" onClick={showTrash}>
+              <Trash2 size={15} /> Корзина
+            </button>
+          )}
+
           {admin ? (
             <button
               onClick={() =>
@@ -809,6 +857,52 @@ function Notes() {
           </div>
         )}
       </main>
+
+      {trashOpen && (
+        <div className="trashBackdrop" onMouseDown={() => setTrashOpen(false)}>
+          <div className="trashModal" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="trashHead">
+              <div>
+                <h2>Корзина</h2>
+                <p>Удалённые страницы можно восстановить.</p>
+              </div>
+              <button className="trashClose" onClick={() => setTrashOpen(false)}>
+                ×
+              </button>
+            </div>
+
+            <div className="trashList">
+              {trash.length ? (
+                trash.map((item) => (
+                  <div className="trashItem" key={item.trash_path}>
+                    <div className="trashInfo">
+                      <span>{item.emoji || '📄'}</span>
+                      <div>
+                        <b>{item.title}</b>
+                        <small>{item.original_path}</small>
+                      </div>
+                    </div>
+
+                    <div className="trashActions">
+                      <button onClick={() => restoreTrash(item)}>
+                        <RotateCcw size={14} /> Восстановить
+                      </button>
+                      <button
+                        className="deleteForever"
+                        onClick={() => deleteForever(item)}
+                      >
+                        <Trash2 size={14} /> Навсегда
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="trashEmpty">Корзина пуста</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

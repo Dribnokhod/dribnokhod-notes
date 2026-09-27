@@ -1,9 +1,13 @@
+import shutil
 from flask import Flask,request,jsonify,send_from_directory,session
 from pathlib import Path
+from datetime import datetime
 import os,re,yaml,secrets,requests
 from bs4 import BeautifulSoup
 app=Flask(__name__); app.secret_key=os.getenv('SECRET_KEY','dev-secret')
 NOTES=Path(os.getenv('NOTES_DIR','/data/notes')); UP=Path(os.getenv('UPLOADS_DIR','/data/uploads')); NOTES.mkdir(parents=True,exist_ok=True); UP.mkdir(parents=True,exist_ok=True)
+TRASH = NOTES.parent / 'trash'
+TRASH.mkdir(parents=True, exist_ok=True)
 
 def safe(rel):
  p=(NOTES/rel).resolve()
@@ -81,10 +85,84 @@ def delete_note():
  try:
   p=safe(request.args.get('path',''))
   if p.suffix.lower()!='.md' or not p.is_file(): return jsonify(error='Not found'),404
+
+  rel=p.relative_to(NOTES)
+  stamp=datetime.now().strftime('%Y%m%d-%H%M%S-%f')
+  trash_name=f'{stamp}__{rel.name}'
+  dest=TRASH / rel.parent / trash_name
+  dest.parent.mkdir(parents=True,exist_ok=True)
+  shutil.move(str(p),str(dest))
+
+  return jsonify(ok=True)
+ except Exception as e:
+  return jsonify(error=str(e)),400
+
+
+@app.get('/api/trash')
+def trash_list():
+ if not auth(): return jsonify(error='Unauthorized'),401
+
+ items=[]
+ for p in sorted(TRASH.rglob('*.md'), key=lambda x: x.stat().st_mtime, reverse=True):
+  try:
+   meta,body=parse(p)
+   raw_name=p.name
+   original_name=raw_name.split('__',1)[1] if '__' in raw_name else raw_name
+   rel_parent=p.parent.relative_to(TRASH)
+   original=(rel_parent / original_name).as_posix()
+   items.append({
+    'trash_path':p.relative_to(TRASH).as_posix(),
+    'original_path':original,
+    'title':meta.get('title') or Path(original_name).stem,
+    'emoji':meta.get('emoji') or '📄',
+    'deleted_at':datetime.fromtimestamp(p.stat().st_mtime).isoformat(timespec='seconds')
+   })
+  except Exception:
+   pass
+
+ return jsonify(items)
+
+
+@app.post('/api/trash/restore')
+def trash_restore():
+ if not auth(): return jsonify(error='Unauthorized'),401
+ try:
+  rel=Path((request.json or {}).get('path',''))
+  if rel.is_absolute() or '..' in rel.parts: return jsonify(error='Bad path'),400
+
+  src=(TRASH / rel).resolve()
+  if TRASH.resolve() not in src.parents or not src.is_file(): return jsonify(error='Not found'),404
+
+  raw_name=src.name
+  original_name=raw_name.split('__',1)[1] if '__' in raw_name else raw_name
+  rel_parent=src.parent.relative_to(TRASH)
+  dest=(NOTES / rel_parent / original_name).resolve()
+
+  if NOTES.resolve() not in dest.parents: return jsonify(error='Bad path'),400
+  if dest.exists(): return jsonify(error='A page with this path already exists'),409
+
+  dest.parent.mkdir(parents=True,exist_ok=True)
+  shutil.move(str(src),str(dest))
+  return jsonify(ok=True,path=dest.relative_to(NOTES).as_posix())
+ except Exception as e:
+  return jsonify(error=str(e)),400
+
+
+@app.delete('/api/trash')
+def trash_delete_forever():
+ if not auth(): return jsonify(error='Unauthorized'),401
+ try:
+  rel=Path(request.args.get('path',''))
+  if rel.is_absolute() or '..' in rel.parts: return jsonify(error='Bad path'),400
+
+  p=(TRASH / rel).resolve()
+  if TRASH.resolve() not in p.parents or not p.is_file(): return jsonify(error='Not found'),404
+
   p.unlink()
   return jsonify(ok=True)
- except Exception:
-  return jsonify(error='Not found'),404
+ except Exception as e:
+  return jsonify(error=str(e)),400
+
 
 @app.post('/api/note')
 def create_note():
