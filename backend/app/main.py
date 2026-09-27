@@ -75,6 +75,17 @@ def save_note():
  meta=d.get('meta',{})
  if meta.get('start_page'): clear_other_start_pages(p)
  write_note(p,meta,d.get('content','')); return jsonify(ok=True)
+@app.delete('/api/note')
+def delete_note():
+ if not auth(): return jsonify(error='Unauthorized'),401
+ try:
+  p=safe(request.args.get('path',''))
+  if p.suffix.lower()!='.md' or not p.is_file(): return jsonify(error='Not found'),404
+  p.unlink()
+  return jsonify(ok=True)
+ except Exception:
+  return jsonify(error='Not found'),404
+
 @app.post('/api/note')
 def create_note():
  if not auth(): return jsonify(error='Unauthorized'),401

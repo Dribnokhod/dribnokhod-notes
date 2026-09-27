@@ -19,6 +19,7 @@ import {
   Plus,
   FolderPlus,
   Save,
+  Trash2,
   LogOut,
   ExternalLink,
   Sun,
@@ -600,6 +601,25 @@ function Notes() {
       loadTree();
     });
 
+  let remove = async () => {
+    if (!note) return;
+
+    const title = note.meta.title || 'Без названия';
+    if (!confirm(`Удалить страницу «${title}»?\n\nЭто действие нельзя отменить.`)) return;
+
+    await api('/note?path=' + encodeURIComponent(note.path), { method: 'DELETE' });
+
+    setNote(null);
+    setEdit(false);
+    await loadTree();
+
+    api('/start')
+      .then((x) => {
+        if (x.path) open(x.path);
+      })
+      .catch(() => {});
+  };
+
   let create = () => {
     let t = prompt('Название страницы');
     if (t) {
@@ -737,6 +757,14 @@ function Notes() {
                     />{' '}
                     Начальная страница
                   </label>
+
+                  <button
+                    className="deleteNote"
+                    onClick={remove}
+                    title="Удалить страницу"
+                  >
+                    <Trash2 size={15} /> Удалить
+                  </button>
                 </div>
               )}
 

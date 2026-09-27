@@ -1319,3 +1319,25 @@ summary:hover {
   gap: 5px;
   white-space: nowrap;
 }
+
+.adminbar .deleteNote {
+  margin-left: auto;
+  color: #b42318;
+  border-color: rgba(180, 35, 24, .22);
+  background: transparent;
+}
+
+.adminbar .deleteNote:hover {
+  background: rgba(180, 35, 24, .08);
+  border-color: rgba(180, 35, 24, .35);
+}
+
+@media(max-width:720px) {
+  .adminbar {
+    flex-wrap: wrap
+  }
+
+  .adminbar .deleteNote {
+    margin-left: 0
+  }
+}
