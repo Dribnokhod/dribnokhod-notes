@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useEditor, EditorContent } from '@tiptap/react';
+import { Extension, Mark } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
+import CodeBlock from '@tiptap/extension-code-block';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
@@ -14,6 +16,8 @@ import TurndownService from 'turndown';
 import { gfm as gfmPlugin } from 'turndown-plugin-gfm';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import {
   Menu,
   Plus,
@@ -104,6 +108,135 @@ const SLASH_COMMANDS = [
       e.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
   ],
 ];
+
+const CODE_LANGUAGES = [
+  ['Plain text', ''], ['C#', 'csharp'], ['Shell / Bash', 'bash'], ['PowerShell', 'powershell'],
+  ['JavaScript', 'javascript'], ['TypeScript', 'typescript'], ['Python', 'python'], ['SQL', 'sql'],
+  ['JSON', 'json'], ['HTML', 'html'], ['CSS', 'css'], ['Dockerfile', 'dockerfile'],
+];
+
+const LANGUAGE_ALIASES = { cs: 'csharp', 'c#': 'csharp', sh: 'bash', shell: 'bash', ps1: 'powershell', ps: 'powershell', js: 'javascript', ts: 'typescript', py: 'python' };
+
+function normalizeLanguage(language = '') {
+  return LANGUAGE_ALIASES[language.toLowerCase()] || language.toLowerCase();
+}
+
+// Small dependency-free tokenizer: it deliberately favours safe, readable output
+// over trying to be a full compiler for every language in the language picker.
+function codeTokens(source, language = '') {
+  const lang = normalizeLanguage(language);
+  if (!lang) return [{ text: source, type: '' }];
+  const keywords = {
+    csharp: 'abstract as async await base bool break byte case catch char checked class const continue decimal default delegate do double else enum event explicit extern false finally fixed float for foreach goto if implicit in int interface internal is lock long namespace new null object operator out override params private protected public readonly ref return sbyte sealed short sizeof stackalloc static string struct switch this throw true try typeof uint ulong unchecked unsafe ushort using virtual void volatile while yield',
+    bash: 'if then else elif fi for while in do done case esac function select time until',
+    powershell: 'begin break catch class continue data define do dynamicparam else elseif end enum exit filter finally for foreach from function if in param process return switch throw trap try until using var while workflow',
+    javascript: 'async await break case catch class const continue debugger default delete do else export extends false finally for from function get if import in instanceof let new null of return set static super switch this throw true try typeof undefined var void while with yield',
+    typescript: 'abstract any as async await boolean break case catch class const constructor continue declare default delete do else enum export extends false finally for from function get if implements import in infer instanceof interface keyof let module namespace never new null number object of private protected public readonly return set static string super switch symbol this throw true try type typeof undefined unknown var void while yield',
+    python: 'and as assert async await break class continue def del elif else except false finally for from global if import in is lambda none nonlocal not or pass raise return true try while with yield',
+    sql: 'add alter and as asc between by case column create database default delete desc distinct drop else end exists from group having in index insert into is join like limit not null on or order primary references select set table then union unique update values view when where',
+  }[lang] || '';
+  const keywordSet = new Set(keywords.split(' ').filter(Boolean));
+  const pattern = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/|#[^\n]*|<!--[\s\S]*?-->|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\b\d+(?:\.\d+)?\b|\b[A-Za-z_$][\w$-]*\b)/g;
+  const result = [];
+  let cursor = 0;
+  for (const match of source.matchAll(pattern)) {
+    if (match.index > cursor) result.push({ text: source.slice(cursor, match.index), type: '' });
+    const value = match[0];
+    let type = '';
+    if (/^(\/\/|\/\*|#|<!--)/.test(value)) type = 'comment';
+    else if (/^["'`]/.test(value)) type = 'string';
+    else if (/^\d/.test(value)) type = 'number';
+    else if (keywordSet.has(value.toLowerCase())) type = 'keyword';
+    else if (/^[A-Z]/.test(value) && ['csharp', 'typescript'].includes(lang)) type = 'type';
+    result.push({ text: value, type });
+    cursor = match.index + value.length;
+  }
+  if (cursor < source.length) result.push({ text: source.slice(cursor), type: '' });
+  return result;
+}
+
+const LanguageCodeBlock = CodeBlock.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      language: {
+        default: '',
+        parseHTML: (element) => normalizeLanguage(element.firstElementChild?.className.match(/language-([\w#+-]+)/)?.[1] || ''),
+        renderHTML: ({ language }) => language ? { class: `language-${normalizeLanguage(language)}` } : {},
+      },
+    };
+  },
+});
+
+const SyntaxHighlight = Extension.create({
+  name: 'syntaxHighlight',
+  addProseMirrorPlugins() {
+    return [new Plugin({
+      key: new PluginKey('syntaxHighlight'),
+      props: {
+        decorations(state) {
+          const decorations = [];
+          state.doc.descendants((node, pos) => {
+            if (node.type.name !== 'codeBlock' || !node.attrs.language) return;
+            let offset = 0;
+            codeTokens(node.textContent, node.attrs.language).forEach((token) => {
+              if (token.type) decorations.push(Decoration.inline(pos + 1 + offset, pos + 1 + offset + token.text.length, { class: `tok-${token.type}` }));
+              offset += token.text.length;
+            });
+          });
+          return DecorationSet.create(state.doc, decorations);
+        },
+      },
+    })];
+  },
+});
+
+function styleMark(name, property, tag) {
+  return Mark.create({
+    name,
+    addAttributes() {
+      return { color: { default: null, parseHTML: (el) => el.style[property], renderHTML: ({ color }) => color ? { style: `${tag}: ${color}` } : {} } };
+    },
+    parseHTML() { return [{ tag: 'span[style]', getAttrs: (element) => element.style[property] ? {} : false }]; },
+    renderHTML({ HTMLAttributes }) { return ['span', HTMLAttributes, 0]; },
+    addCommands() {
+      return { [`set${name[0].toUpperCase() + name.slice(1)}`]: (attributes) => ({ commands }) => commands.setMark(name, attributes), [`unset${name[0].toUpperCase() + name.slice(1)}`]: () => ({ commands }) => commands.unsetMark(name) };
+    },
+  });
+}
+
+const TextColor = styleMark('textColor', 'color', 'color');
+const TextHighlight = styleMark('textHighlight', 'backgroundColor', 'background-color');
+
+function HighlightedCode({ language, children }) {
+  return <code className={language ? `language-${normalizeLanguage(language)}` : ''}>{codeTokens(String(children).replace(/\n$/, ''), language).map((token, i) => <span className={token.type ? `tok-${token.type}` : undefined} key={i}>{token.text}</span>)}</code>;
+}
+
+// ReactMarkdown intentionally ignores raw HTML. Convert only the two safe span
+// styles emitted by our editor, leaving every other HTML fragment untouched.
+function rehypeEditorStyles() {
+  return (tree) => {
+    const visit = (node) => {
+      if (!node.children) return;
+      for (let i = 0; i < node.children.length; i++) {
+        const raw = node.children[i];
+        const match = raw.type === 'raw' && raw.value.match(/^<span style="(color|background-color):\s*([^";]+)">$/i);
+        if (!match) continue;
+        const end = node.children.findIndex((child, index) => index > i && child.type === 'raw' && child.value === '</span>');
+        if (end < 0) continue;
+        const styledChildren = node.children.slice(i + 1, end);
+        node.children.splice(i, end - i + 1, {
+          type: 'element',
+          tagName: 'span',
+          properties: { style: `${match[1]}: ${match[2]}` },
+          children: styledChildren,
+        });
+      }
+      node.children.forEach(visit);
+    };
+    visit(tree);
+  };
+}
 
 /* ------------------------------------------------------------------ */
 /*  Theme                                                              */
@@ -327,6 +460,16 @@ turndown.addRule('tiptapImage', {
     `![${node.getAttribute('alt') || ''}](${node.getAttribute('src') || ''})`,
 });
 
+turndown.addRule('textColour', {
+  filter: (node) => node.nodeName === 'SPAN' && !!node.style.color,
+  replacement: (content, node) => `<span style="color: ${node.style.color}">${content}</span>`,
+});
+
+turndown.addRule('textHighlight', {
+  filter: (node) => node.nodeName === 'SPAN' && !!node.style.backgroundColor,
+  replacement: (content, node) => `<span style="background-color: ${node.style.backgroundColor}">${content}</span>`,
+});
+
 /* ------------------------------------------------------------------ */
 /*  Rich editor                                                        */
 /* ------------------------------------------------------------------ */
@@ -337,7 +480,11 @@ function RichEditor({ note, setNote, upload }) {
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({ codeBlock: false }),
+      LanguageCodeBlock,
+      SyntaxHighlight,
+      TextColor,
+      TextHighlight,
       Underline,
       Link.configure({ openOnClick: false, autolink: true }),
       Image.configure({ inline: false, allowBase64: false }),
@@ -395,6 +542,8 @@ function RichEditor({ note, setNote, upload }) {
     editor.chain().focus().setImage({ src: x.url, alt: f.name }).run();
   };
 
+  const codeLanguage = normalizeLanguage(editor.getAttributes('codeBlock').language || '');
+
   return (
     <div className="richEditor">
       <div className="editorToolbar">
@@ -429,6 +578,33 @@ function RichEditor({ note, setNote, upload }) {
         <button onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>H3</button>
         <button onClick={() => editor.chain().focus().toggleBulletList().run()}>• List</button>
         <button onClick={() => editor.chain().focus().toggleOrderedList().run()}>1. List</button>
+        <button
+          className={editor.isActive('codeBlock') ? 'active' : ''}
+          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          title="Code block"
+        >
+          {'</>'}
+        </button>
+        <label className="languagePicker" title="Code language">
+          <span>Language</span>
+          <select
+            value={codeLanguage}
+            disabled={!editor.isActive('codeBlock')}
+            onChange={(e) => editor.chain().focus().updateAttributes('codeBlock', { language: e.target.value }).run()}
+          >
+            {CODE_LANGUAGES.map(([label, value]) => <option value={value} key={value}>{label}</option>)}
+          </select>
+        </label>
+        <label className="colorTool" title="Text colour">
+          <span>A</span>
+          <input type="color" defaultValue="#2563eb" onInput={(e) => editor.chain().focus().setTextColor({ color: e.currentTarget.value }).run()} />
+        </label>
+        <button onClick={() => editor.chain().focus().unsetTextColor().run()} title="Remove text colour">A×</button>
+        <label className="colorTool highlightTool" title="Highlight colour">
+          <span>▰</span>
+          <input type="color" defaultValue="#fde68a" onInput={(e) => editor.chain().focus().setTextHighlight({ color: e.currentTarget.value }).run()} />
+        </label>
+        <button onClick={() => editor.chain().focus().unsetTextHighlight().run()} title="Remove highlight">▰×</button>
         <button onClick={addLink}>Link</button>
         <button onClick={() => fileRef.current?.click()}>Image</button>
         <button onClick={() => editor.chain().focus().undo().run()}>↶</button>
@@ -837,9 +1013,13 @@ function Notes() {
                   <h1>{note.meta.title}</h1>
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeEditorStyles]}
                     components={{
                       a: ({ href, children }) => (
                         <LinkCard href={href}>{children}</LinkCard>
+                      ),
+                      code: ({ className = '', children }) => (
+                        <HighlightedCode language={className.match(/language-([\w#+-]+)/)?.[1] || ''}>{children}</HighlightedCode>
                       ),
                     }}
                   >

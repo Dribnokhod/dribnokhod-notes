@@ -335,6 +335,25 @@ summary:hover {
   border-radius: 8px
 }
 
+.page article {
+  min-width: 0;
+  overflow-wrap: anywhere
+}
+
+.page pre,
+.tiptapEditor pre {
+  max-width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word
+}
+
+.page pre code,
+.tiptapEditor pre code {
+  white-space: inherit;
+  overflow-wrap: inherit
+}
+
 .page table {
   border-collapse: collapse;
   width: 100%
@@ -946,6 +965,62 @@ summary:hover {
   background: var(--hover)
 }
 
+.languagePicker,
+.colorTool {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  font-size: 13px;
+  white-space: nowrap
+}
+
+.languagePicker:hover,
+.colorTool:hover {
+  background: var(--hover)
+}
+
+.languagePicker select {
+  max-width: 112px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit
+}
+
+.languagePicker select:disabled {
+  opacity: .45
+}
+
+.colorTool {
+  position: relative;
+  font-weight: 700;
+  cursor: pointer
+}
+
+.colorTool input {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer
+}
+
+.tok-keyword { color: #8959a8 }
+.tok-string { color: #718c00 }
+.tok-number { color: #f5871f }
+.tok-comment { color: #8e908c; font-style: italic }
+.tok-type { color: #4271ae }
+
+html[data-theme=dark] .tok-keyword { color: #c792ea }
+html[data-theme=dark] .tok-string { color: #c3e88d }
+html[data-theme=dark] .tok-number { color: #f78c6c }
+html[data-theme=dark] .tok-comment { color: #7f8c98 }
+html[data-theme=dark] .tok-type { color: #82aaff }
+
 .editorToolbar>span {
   height: 22px;
   width: 1px;
@@ -1087,10 +1162,18 @@ summary:hover {
 
 @media(max-width:720px) {
   .editorToolbar {
-    top: 8px;
+    top: max(8px, env(safe-area-inset-top));
+    z-index: 80;
     overflow-x: auto;
     flex-wrap: nowrap;
-    scrollbar-width: none
+    scrollbar-width: none;
+    margin-left: -12px;
+    margin-right: -12px;
+    padding: 9px 10px;
+    border-radius: 9px;
+    box-shadow: 0 8px 24px var(--shadow);
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch
   }
 
   .editorToolbar::-webkit-scrollbar {
@@ -1098,7 +1181,17 @@ summary:hover {
   }
 
   .editorToolbar button {
-    white-space: nowrap
+    white-space: nowrap;
+    flex: 0 0 auto
+  }
+
+  .editorToolbar>span {
+    flex: 0 0 1px
+  }
+
+  .languagePicker,
+  .colorTool {
+    flex: 0 0 auto
   }
 
   .tiptapEditor {
