@@ -406,7 +406,7 @@ summary:hover {
 .emojiPanel,
 .slashMenu {
   position: absolute;
-  z-index: 30;
+  z-index: 120;
   background: var(--card);
   border: 1px solid var(--line);
   box-shadow: 0 10px 35px var(--shadow);
@@ -871,7 +871,7 @@ summary:hover {
 
 /* v2.1 editor fixes */
 .emojiPick {
-  z-index: 50;
+  z-index: 120;
   max-width: 100%
 }
 
