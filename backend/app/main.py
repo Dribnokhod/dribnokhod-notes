@@ -173,7 +173,30 @@ def create_note():
 @app.post('/api/folder')
 def folder():
  if not auth(): return jsonify(error='Unauthorized'),401
- safe(request.json['path']).mkdir(parents=True,exist_ok=True); return jsonify(ok=True)
+ try:
+  p=safe(request.json['path'])
+  if p.exists(): return jsonify(error='A folder with this path already exists'),409
+  p.mkdir(parents=True,exist_ok=False); return jsonify(ok=True,path=p.relative_to(NOTES).as_posix())
+ except Exception as e:
+  return jsonify(error=str(e)),400
+@app.post('/api/move')
+def move_item():
+ if not auth(): return jsonify(error='Unauthorized'),401
+ try:
+  d=request.json or {}
+  src=safe(d.get('path',''))
+  destination=safe(d.get('folder',''))
+  kind=d.get('type')
+  if kind not in ('note','folder') or not src.exists(): return jsonify(error='Not found'),404
+  if (kind=='note' and (not src.is_file() or src.suffix.lower()!='.md')) or (kind=='folder' and not src.is_dir()): return jsonify(error='Not found'),404
+  if not destination.is_dir(): return jsonify(error='Destination folder does not exist'),404
+  target=destination/src.name
+  if target.exists(): return jsonify(error='An item with this name already exists in the destination'),409
+  if src==destination or (src.is_dir() and src in destination.parents): return jsonify(error='A folder cannot be moved into itself'),400
+  shutil.move(str(src),str(target))
+  return jsonify(ok=True,path=target.relative_to(NOTES).as_posix())
+ except Exception as e:
+  return jsonify(error=str(e)),400
 @app.post('/api/upload')
 def upload():
  if not auth(): return jsonify(error='Unauthorized'),401

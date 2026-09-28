@@ -34,6 +34,8 @@ import {
   ChevronDown,
   Folder,
   ChevronRight,
+  MoveRight,
+  X,
 } from 'lucide-react';
 import './style.css';
 
@@ -304,7 +306,7 @@ function LinkCard({ href, children }) {
 /*  Sidebar tree                                                       */
 /* ------------------------------------------------------------------ */
 
-function Tree({ items, onOpen }) {
+function Tree({ items, onOpen, admin, onMoveFolder }) {
   return items.map((x) => (
     <div key={x.path} className={x.type === 'folder' ? 'treeFolder' : ''}>
       {x.type === 'folder' ? (
@@ -313,9 +315,10 @@ function Tree({ items, onOpen }) {
             <ChevronRight className="folderChevron" size={14} />
             <Folder className="folderIcon" size={16} />
             <span>{x.name}</span>
+            {admin && <button className="treeAction" type="button" title="Переместить папку" onClick={(e) => { e.preventDefault(); onMoveFolder(x); }}><MoveRight size={14} /></button>}
           </summary>
           <div className="nest">
-            <Tree items={x.children} onOpen={onOpen} />
+            <Tree items={x.children} onOpen={onOpen} admin={admin} onMoveFolder={onMoveFolder} />
           </div>
         </details>
       ) : (
@@ -326,6 +329,28 @@ function Tree({ items, onOpen }) {
       )}
     </div>
   ));
+}
+
+function folderOptions(items, depth = 0) {
+  return items.flatMap((item) => item.type === 'folder'
+    ? [{ path: item.path, label: `${'— '.repeat(depth)}${item.name}` }, ...folderOptions(item.children, depth + 1)]
+    : []);
+}
+
+function FolderDialog({ title, folders, initialFolder = '', nameLabel, onClose, onSubmit }) {
+  const [folder, setFolder] = useState(initialFolder);
+  const [name, setName] = useState('');
+
+  return (
+    <div className="dialogBackdrop" onMouseDown={onClose}>
+      <form className="folderDialog" onMouseDown={(e) => e.stopPropagation()} onSubmit={(e) => { e.preventDefault(); onSubmit({ folder, name: name.trim() }); }}>
+        <div className="dialogHead"><h2>{title}</h2><button type="button" className="iconBtn" onClick={onClose}><X size={18} /></button></div>
+        {nameLabel && <label>{nameLabel}<input autoFocus required value={name} onChange={(e) => setName(e.target.value)} /></label>}
+        <label>Папка<select value={folder} onChange={(e) => setFolder(e.target.value)}><option value="">Корень</option>{folderOptions(folders).map((x) => <option key={x.path} value={x.path}>{x.label}</option>)}</select></label>
+        <div className="dialogActions"><button type="button" onClick={onClose}>Отмена</button><button className="primary" type="submit">Готово</button></div>
+      </form>
+    </div>
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -754,6 +779,8 @@ function Notes() {
   const [side, setSide] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
   const [trash, setTrash] = useState([]);
+  const [dialog, setDialog] = useState(null);
+  const [sidebarWidth, setSidebarWidth] = useState(() => Number(localStorage.sidebarWidth) || 270);
 
   let loadTree = () => api('/tree').then(setTree);
 
@@ -838,15 +865,44 @@ function Notes() {
     loadTrash();
   };
 
-  let create = () => {
-    let t = prompt('Название страницы');
-    if (t) {
-      api('/note', { method: 'POST', body: JSON.stringify({ title: t }) }).then((x) => {
+  let create = ({ name, folder }) => {
+    if (name) {
+      api('/note', { method: 'POST', body: JSON.stringify({ title: name, folder }) }).then((x) => {
+        setDialog(null);
         loadTree();
         open(x.path).then?.(() => setEdit(true));
         setTimeout(() => setEdit(true), 150);
-      });
+      }).catch((e) => alert(e.message));
     }
+  };
+
+  let createFolder = ({ name, folder }) => {
+    const path = [folder, name].filter(Boolean).join('/');
+    api('/folder', { method: 'POST', body: JSON.stringify({ path }) })
+      .then(() => { setDialog(null); loadTree(); })
+      .catch((e) => alert(e.message));
+  };
+
+  let move = (item, type) => setDialog({
+    title: `Переместить «${item.name || item.meta?.title || 'страницу'}»`,
+    initialFolder: type === 'note' ? item.path.split('/').slice(0, -1).join('/') : item.path.split('/').slice(0, -1).join('/'),
+    submit: ({ folder }) => api('/move', { method: 'POST', body: JSON.stringify({ path: item.path, folder, type }) })
+      .then((x) => { setDialog(null); loadTree(); if (type === 'note') open(x.path); })
+      .catch((e) => alert(e.message)),
+  });
+
+  let startResize = (event) => {
+    event.preventDefault();
+    const resize = (e) => setSidebarWidth(Math.max(220, Math.min(520, e.clientX)));
+    const finish = (e) => {
+      const width = Math.max(220, Math.min(520, e.clientX));
+      setSidebarWidth(width);
+      localStorage.sidebarWidth = width;
+      document.removeEventListener('mousemove', resize);
+      document.removeEventListener('mouseup', finish);
+    };
+    document.addEventListener('mousemove', resize);
+    document.addEventListener('mouseup', finish);
   };
 
   let upload = async (f, append = true) => {
@@ -866,7 +922,7 @@ function Notes() {
     : {};
 
   return (
-    <div className="notes">
+    <div className="notes" style={{ '--sidebar-width': `${sidebarWidth}px` }}>
       <aside className={side ? 'show' : ''}>
         <div className="sideHead">
           <a href="/" className="brand">
@@ -879,26 +935,18 @@ function Notes() {
 
         {admin && (
           <div className="tools">
-            <button onClick={create}>
+            <button onClick={() => setDialog({ title: 'Новая страница', nameLabel: 'Название', submit: create })}>
               <Plus size={16} /> Page
             </button>
             <button
-              onClick={() => {
-                let n = prompt('Folder');
-                if (n) {
-                  api('/folder', {
-                    method: 'POST',
-                    body: JSON.stringify({ path: n }),
-                  }).then(loadTree);
-                }
-              }}
+              onClick={() => setDialog({ title: 'Новая папка', nameLabel: 'Название', submit: createFolder })}
             >
               <FolderPlus size={16} />
             </button>
           </div>
         )}
 
-        <Tree items={tree} onOpen={open} />
+        <Tree items={tree} onOpen={open} admin={admin} onMoveFolder={(folder) => move(folder, 'folder')} />
 
         <div className="sideBottom">
           {admin && (
@@ -917,6 +965,7 @@ function Notes() {
             </button>
           ) : null}
         </div>
+        <div className="sidebarResize" onMouseDown={startResize} title="Изменить ширину панели" />
       </aside>
 
       {side && (
@@ -994,6 +1043,9 @@ function Notes() {
                     title="Удалить страницу"
                   >
                     <Trash2 size={15} /> Удалить
+                  </button>
+                  <button onClick={() => move(note, 'note')} title="Переместить страницу">
+                    <MoveRight size={15} /> Переместить
                   </button>
                 </div>
               )}
@@ -1089,6 +1141,7 @@ function Notes() {
           </div>
         </div>
       )}
+      {dialog && <FolderDialog title={dialog.title} folders={tree} initialFolder={dialog.initialFolder} nameLabel={dialog.nameLabel} onClose={() => setDialog(null)} onSubmit={dialog.submit} />}
     </div>
   );
 }
