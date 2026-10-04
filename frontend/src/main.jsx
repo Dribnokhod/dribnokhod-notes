@@ -306,7 +306,7 @@ function LinkCard({ href, children }) {
 /*  Sidebar tree                                                       */
 /* ------------------------------------------------------------------ */
 
-function Tree({ items, onOpen, admin, onMoveFolder }) {
+function Tree({ items, onOpen, editor, onMoveFolder }) {
   return items.map((x) => (
     <div key={x.path} className={x.type === 'folder' ? 'treeFolder' : ''}>
       {x.type === 'folder' ? (
@@ -315,10 +315,10 @@ function Tree({ items, onOpen, admin, onMoveFolder }) {
             <ChevronRight className="folderChevron" size={14} />
             <Folder className="folderIcon" size={16} />
             <span>{x.name}</span>
-            {admin && <button className="treeAction" type="button" title="Переместить папку" onClick={(e) => { e.preventDefault(); onMoveFolder(x); }}><MoveRight size={14} /></button>}
+            {editor && <button className="treeAction" type="button" title="Переместить папку" onClick={(e) => { e.preventDefault(); onMoveFolder(x); }}><MoveRight size={14} /></button>}
           </summary>
           <div className="nest">
-            <Tree items={x.children} onOpen={onOpen} admin={admin} onMoveFolder={onMoveFolder} />
+            <Tree items={x.children} onOpen={onOpen} editor={editor} onMoveFolder={onMoveFolder} />
           </div>
         </details>
       ) : (
@@ -774,7 +774,9 @@ function EmojiPicker({ value, onChange }) {
 function Notes() {
   const [tree, setTree] = useState([]);
   const [note, setNote] = useState(null);
-  const [admin, setAdmin] = useState(false);
+  const [role, setRole] = useState('visitor');
+  const editor = role === 'developer' || role === 'admin';
+  const admin = role === 'admin';
   const [edit, setEdit] = useState(false);
   const [side, setSide] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
@@ -792,7 +794,7 @@ function Notes() {
     });
 
   useEffect(() => {
-    api('/me').then((x) => setAdmin(x.admin));
+    api('/me').then((x) => setRole(x.role));
     loadTree();
 
     api('/start')
@@ -933,7 +935,7 @@ function Notes() {
           </div>
         </div>
 
-        {admin && (
+        {editor && (
           <div className="tools">
             <button onClick={() => setDialog({ title: 'Новая страница', nameLabel: 'Название', submit: create })}>
               <Plus size={16} /> Page
@@ -946,16 +948,16 @@ function Notes() {
           </div>
         )}
 
-        <Tree items={tree} onOpen={open} admin={admin} onMoveFolder={(folder) => move(folder, 'folder')} />
+        <Tree items={tree} onOpen={open} editor={editor} onMoveFolder={(folder) => move(folder, 'folder')} />
 
         <div className="sideBottom">
-          {admin && (
+          {editor && (
             <button className="trashOpenBtn" onClick={showTrash}>
               <Trash2 size={15} /> Корзина
             </button>
           )}
 
-          {admin ? (
+          {editor ? (
             <button
               onClick={() =>
                 api('/logout', { method: 'POST' }).then(() => location.reload())
@@ -999,7 +1001,7 @@ function Notes() {
                 {edit && <CoverPicker note={note} setNote={setNote} />}
               </div>
 
-              {admin && (
+              {editor && (
                 <div className="adminbar">
                   <button onClick={() => setEdit(!edit)}>{edit ? 'Done' : 'Edit'}</button>
 
@@ -1022,6 +1024,22 @@ function Notes() {
                     />{' '}
                     Published
                   </label>
+
+                  {admin && (
+                    <label title="Личные страницы видны только администратору">
+                      <input
+                        type="checkbox"
+                        checked={!!note.meta.private}
+                        onChange={(e) =>
+                          setNote({
+                            ...note,
+                            meta: { ...note.meta, private: e.target.checked },
+                          })
+                        }
+                      />{' '}
+                      Личная
+                    </label>
+                  )}
 
                   <label title="Эта страница откроется первой при переходе в заметки">
                     <input
