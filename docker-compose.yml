@@ -3,6 +3,7 @@ services:
     build: ./backend
     environment:
       NOTES_ADMIN_PASSWORD: ${NOTES_ADMIN_PASSWORD:-change-me}
+      NOTES_DEVELOPER_PASSWORD: ${NOTES_DEVELOPER_PASSWORD:-change-developer-password}
       SECRET_KEY: ${SECRET_KEY:-change-this-secret}
       NOTES_DIR: /data/notes
       UPLOADS_DIR: /data/uploads

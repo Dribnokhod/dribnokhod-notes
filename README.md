@@ -10,7 +10,13 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-Open `http://localhost:8080`. Notes are at `/notes`; the deliberately unlinked admin login is `/login`.
+Open `http://localhost:8090`. Notes are at `/notes`; the deliberately unlinked editor login is `/login`.
+Set `NOTES_ADMIN_PASSWORD` and `NOTES_DEVELOPER_PASSWORD` in `.env`. Both roles can edit
+notes, but only the admin can mark pages as private; private pages are completely hidden
+from developers and visitors. Visitors only see published, non-private pages.
+Login sessions for both editor roles are persistent and refreshed for 90 days, so rebuilding
+or restarting the application does not require entering the password again as long as the
+`SECRET_KEY` value remains unchanged.
 
 ## Obsidian import
 
@@ -33,6 +39,7 @@ title: Page title
 emoji: 🧠
 cover: https://...
 published: true
+private: false
 ---
 ```
 
@@ -40,4 +47,6 @@ This means there is no proprietary note database to escape from. Back up `data/`
 
 ## Production
 
-Put this behind your existing nginx/Caddy TLS proxy. Change both secrets in `.env`. The current MVP uses one password-backed admin session. For Internet exposure, add rate limiting at the reverse proxy and use a strong password.
+Put this behind your existing nginx/Caddy TLS proxy. Change `SECRET_KEY` and both role
+passwords in `.env`. For Internet exposure, add rate limiting at the reverse proxy and use
+strong, distinct passwords.
