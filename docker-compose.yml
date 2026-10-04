@@ -13,5 +13,5 @@ services:
     build: ./frontend
     depends_on: [backend]
     ports:
-      - "8090:80"
+      - "127.0.0.1:8090:80"
     restart: unless-stopped
