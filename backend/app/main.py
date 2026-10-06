@@ -25,6 +25,7 @@ app.secret_key = os.getenv('SECRET_KEY', 'dev-secret')
 # Авторизация сохраняется на 90 дней.
 app.config.update(
     PERMANENT_SESSION_LIFETIME=timedelta(days=90),
+    SESSION_REFRESH_EACH_REQUEST=True,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
 
@@ -77,7 +78,19 @@ def parse(p):
     return meta, body
 
 
-def tree(path=NOTES, public=False):
+def can_view(meta):
+    """Return whether the current role may see a note."""
+    if role() == 'admin':
+        return True
+    if meta.get('private', False):
+        return False
+    return role() == 'developer' or meta.get('published', False)
+
+
+def tree(path=None):
+    if path is None:
+        path = NOTES
+
     out = []
 
     for p in sorted(
@@ -90,9 +103,9 @@ def tree(path=NOTES, public=False):
         rel = str(p.relative_to(NOTES)).replace('\\', '/')
 
         if p.is_dir():
-            children = tree(p, public)
+            children = tree(p)
 
-            if children or not public:
+            if children or auth():
                 out.append({
                     'type': 'folder',
                     'name': p.name,
@@ -103,7 +116,7 @@ def tree(path=NOTES, public=False):
         elif p.suffix.lower() == '.md':
             m, _ = parse(p)
 
-            if not public or m.get('published', False):
+            if can_view(m):
                 out.append({
                     'type': 'note',
                     'name': m.get('title') or p.stem,
@@ -114,8 +127,38 @@ def tree(path=NOTES, public=False):
     return out
 
 
+def role():
+    # Keep existing long-lived admin sessions valid after this upgrade.
+    if session.get('admin'):
+        return 'admin'
+    return session.get('role', 'visitor')
+
+
 def auth():
-    return bool(session.get('admin'))
+    return role() in ('developer', 'admin')
+
+
+def admin():
+    return role() == 'admin'
+
+
+def is_private_note(path):
+    try:
+        meta, _ = parse(path)
+        return bool(meta.get('private', False))
+    except Exception:
+        return False
+
+
+def developer_cannot_access(path):
+    return role() == 'developer' and is_private_note(path)
+
+
+def start_role_session(role_name):
+    """Create the same persistent session for either editor role."""
+    session.clear()
+    session['role'] = role_name
+    session.permanent = True
 
 
 def write_note(p, meta, body):
@@ -141,6 +184,9 @@ def clear_other_start_pages(current):
 
         meta, body = parse(other)
 
+        if role() == 'developer' and meta.get('private', False):
+            continue
+
         if meta.get('start_page'):
             meta['start_page'] = False
             write_note(other, meta, body)
@@ -152,7 +198,7 @@ def clear_other_start_pages(current):
 
 @app.get('/api/tree')
 def get_tree():
-    return jsonify(tree(public=not auth()))
+    return jsonify(tree())
 
 
 @app.get('/api/start')
@@ -163,9 +209,7 @@ def get_start():
         except Exception:
             continue
 
-        if m.get('start_page') and (
-            auth() or m.get('published', False)
-        ):
+        if m.get('start_page') and can_view(m):
             return jsonify(
                 path=str(
                     p.relative_to(NOTES)
@@ -188,7 +232,7 @@ def get_note():
     except Exception:
         return jsonify(error='Not found'), 404
 
-    if not auth() and not m.get('published'):
+    if not can_view(m):
         return jsonify(error='Not found'), 404
 
     return jsonify(
@@ -206,12 +250,18 @@ def save_note():
     d = request.json
     p = safe(d['path'])
 
+    if developer_cannot_access(p):
+        return jsonify(error='Not found'), 404
+
     p.parent.mkdir(
         parents=True,
         exist_ok=True
     )
 
     meta = d.get('meta', {})
+
+    if role() == 'developer' and meta.get('private', False):
+        return jsonify(error='Only an admin can make a page private'), 403
 
     if meta.get('start_page'):
         clear_other_start_pages(p)
@@ -304,6 +354,9 @@ def delete_note():
                 error='Not found'
             ), 404
 
+        if developer_cannot_access(p):
+            return jsonify(error='Not found'), 404
+
         rel = p.relative_to(NOTES)
 
         stamp = datetime.now().strftime(
@@ -356,6 +409,9 @@ def trash_list():
     ):
         try:
             meta, body = parse(p)
+
+            if role() == 'developer' and meta.get('private', False):
+                continue
 
             raw_name = p.name
 
@@ -436,6 +492,10 @@ def trash_restore():
             return jsonify(
                 error='Not found'
             ), 404
+
+
+        if developer_cannot_access(src):
+            return jsonify(error='Not found'), 404
 
         raw_name = src.name
 
@@ -525,6 +585,10 @@ def trash_delete_forever():
                 error='Not found'
             ), 404
 
+
+        if developer_cannot_access(p):
+            return jsonify(error='Not found'), 404
+
         p.unlink()
 
         return jsonify(ok=True)
@@ -548,25 +612,27 @@ def login():
         )
     )
 
-    expected = os.getenv(
+    admin_password = os.getenv(
         'NOTES_ADMIN_PASSWORD',
         'change-me'
     )
 
+    developer_password = os.getenv(
+        'NOTES_DEVELOPER_PASSWORD',
+        'change-developer-password'
+    )
+
     if secrets.compare_digest(
         password,
-        expected
+        admin_password
     ):
-        session.clear()
+        start_role_session('admin')
 
-        session['admin'] = True
+        return jsonify(ok=True, role='admin')
 
-        # Главное изменение:
-        # превращает cookie из browser-session
-        # в постоянную cookie.
-        session.permanent = True
-
-        return jsonify(ok=True)
+    if secrets.compare_digest(password, developer_password):
+        start_role_session('developer')
+        return jsonify(ok=True, role='developer')
 
     return jsonify(
         error='Wrong password'
@@ -583,7 +649,9 @@ def logout():
 @app.get('/api/me')
 def me():
     return jsonify(
-        admin=auth()
+        role=role(),
+        admin=admin(),
+        editor=auth()
     )
 
 
@@ -653,6 +721,12 @@ def move_item():
             return jsonify(
                 error='Not found'
             ), 404
+
+        if role() == 'developer':
+            if src.is_file() and developer_cannot_access(src):
+                return jsonify(error='Not found'), 404
+            if src.is_dir() and any(is_private_note(p) for p in src.rglob('*.md')):
+                return jsonify(error='A folder containing private pages can only be moved by an admin'), 403
 
         if (
             kind == 'note'
@@ -846,7 +920,8 @@ def health():
 # Run
 # ------------------------------------------------------------------
 
-app.run(
-    host='0.0.0.0',
-    port=5000
-)
+if __name__ == '__main__':
+    app.run(
+        host='0.0.0.0',
+        port=5000
+    )
