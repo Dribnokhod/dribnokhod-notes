@@ -307,7 +307,7 @@ function LinkCard({ href, children }) {
 /*  Sidebar tree                                                       */
 /* ------------------------------------------------------------------ */
 
-function Tree({ items, onOpen, editor, onMoveFolder, onDeleteFolder }) {
+function Tree({ items, onOpen, editor, onMoveFolder, onDeleteFolder, onShareFolder }) {
   return items.map((x) => (
     <div key={x.path} className={x.type === 'folder' ? 'treeFolder' : ''}>
       {x.type === 'folder' ? (
@@ -316,11 +316,12 @@ function Tree({ items, onOpen, editor, onMoveFolder, onDeleteFolder }) {
             <ChevronRight className="folderChevron" size={14} />
             <Folder className="folderIcon" size={16} />
             <span>{x.name}</span>
+            {editor && <button className="treeAction" type="button" title="Поделиться папкой" aria-label={'Поделиться папкой «' + x.name + '»'} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onShareFolder(x); }}><Share2 size={14} /></button>}
             {editor && <button className="treeAction" type="button" title="Переместить папку" onClick={(e) => { e.preventDefault(); onMoveFolder(x); }}><MoveRight size={14} /></button>}
             {editor && <button className="treeAction" type="button" title="Удалить папку" aria-label={'Удалить папку «' + x.name + '»'} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDeleteFolder(x); }}><Trash2 size={14} /></button>}
           </summary>
           <div className="nest">
-            <Tree items={x.children} onOpen={onOpen} editor={editor} onMoveFolder={onMoveFolder} onDeleteFolder={onDeleteFolder} />
+            <Tree items={x.children} onOpen={onOpen} editor={editor} onMoveFolder={onMoveFolder} onDeleteFolder={onDeleteFolder} onShareFolder={onShareFolder} />
           </div>
         </details>
       ) : (
@@ -794,8 +795,8 @@ function ShareDialog({ note, onClose }) {
     catch { setMessage('Выделите ссылку и скопируйте её вручную.'); }
   };
   return <div className="trashBackdrop" onMouseDown={onClose}>
-    <div className="trashModal shareModal" role="dialog" aria-modal="true" aria-label="Поделиться статьёй" onMouseDown={(e) => e.stopPropagation()}>
-      <div className="trashHead"><div><h2>Поделиться</h2><p>{note.meta.title}</p></div><button aria-label="Закрыть" onClick={onClose}>×</button></div>
+    <div className="trashModal shareModal" role="dialog" aria-modal="true" aria-label={note.type === 'folder' ? 'Поделиться папкой' : 'Поделиться статьёй'} onMouseDown={(e) => e.stopPropagation()}>
+      <div className="trashHead"><div><h2>Поделиться</h2><p>{note.meta?.title || note.name}</p></div><button aria-label="Закрыть" onClick={onClose}>×</button></div>
       {['view', 'edit'].map((mode) => <section className="shareRow" key={mode}>
         <h3>{mode === 'view' ? 'Зритель' : 'Редактор'}</h3>
         {links[mode] ? <><input aria-label={'Ссылка: ' + mode} readOnly value={url(links[mode])} onFocus={(e) => e.target.select()} />
@@ -820,7 +821,8 @@ function Notes() {
   const shared = !!shareToken;
   const member = !shared && (role === 'developer' || role === 'admin');
   const editor = shared ? note?.share_mode === 'edit' : member;
-  const [sharing, setSharing] = useState(false);
+  const [sharing, setSharing] = useState(null);
+  const [sharedFolder, setSharedFolder] = useState(null);
   const [loadError, setLoadError] = useState('');
   const admin = role === 'admin';
   const [edit, setEdit] = useState(false);
@@ -830,21 +832,29 @@ function Notes() {
   const [dialog, setDialog] = useState(null);
   const [sidebarWidth, setSidebarWidth] = useState(() => Number(localStorage.sidebarWidth) || 270);
 
-  let loadTree = () => shared ? Promise.resolve() : api('/tree').then(setTree);
+  let loadTree = () => {
+    if (!shared) return api('/tree').then(setTree);
+    if (!sharedFolder) return Promise.resolve();
+    return api('/shared/' + encodeURIComponent(shareToken)).then((folder) => { setSharedFolder(folder); setTree(folder.tree); });
+  };
 
   let open = (p) =>
-    api('/note?path=' + encodeURIComponent(p)).then((n) => {
+    api((shared ? '/shared/' + encodeURIComponent(shareToken) + '?path=' : '/note?path=') + encodeURIComponent(p)).then((n) => {
       setNote(n);
       setEdit(false);
       setSide(false);
     });
 
   useEffect(() => {
-    setNote(null); setEdit(false); setSharing(false); setLoadError(''); setTree([]);
+    setNote(null); setEdit(false); setSharing(false); setLoadError(''); setTree([]); setSharedFolder(null);
     if (shared) {
       let active = true;
       api('/shared/' + encodeURIComponent(shareToken))
-        .then((n) => { if (active) setNote(n); })
+        .then((n) => {
+          if (!active) return;
+          if (n.type === 'folder') { setSharedFolder(n); setTree(n.tree); }
+          else setNote(n);
+        })
         .catch((e) => { if (active) setLoadError(e.message); });
       return () => { active = false; };
     }
@@ -861,7 +871,7 @@ function Notes() {
   let save = () =>
     api(shared ? '/shared/' + encodeURIComponent(shareToken) : '/note', { method: 'PUT', body: JSON.stringify(note) }).then(() => {
       setEdit(false);
-      loadTree();
+      return loadTree();
     }).catch((e) => alert(e.message));
 
   let remove = async () => {
@@ -1011,7 +1021,7 @@ function Notes() {
           </div>
         )}
 
-        <Tree items={tree} onOpen={open} editor={member} onMoveFolder={(folder) => move(folder, 'folder')} onDeleteFolder={removeFolder} />
+        <Tree items={tree} onOpen={open} editor={member} onMoveFolder={(folder) => move(folder, 'folder')} onDeleteFolder={removeFolder} onShareFolder={setSharing} />
 
         <div className="sideBottom">
           {member && (
@@ -1075,7 +1085,7 @@ function Notes() {
                   )}
 
                   {member && <>
-                  <button className="shareButton" aria-label="Поделиться" title="Поделиться" onClick={() => setSharing(true)}><Share2 size={18} /></button>
+                  <button className="shareButton" aria-label="Поделиться" title="Поделиться" onClick={() => setSharing(note)}><Share2 size={18} /></button>
                   <label>
                     <input
                       type="checkbox"
@@ -1174,13 +1184,13 @@ function Notes() {
         ) : (
           <div className="empty">
             <span>👋</span>
-            <h1>{loadError ? 'Доступ недоступен' : 'Notes'}</h1>
-            <p>{loadError || (shared ? 'Загрузка статьи…' : 'Choose a page from the sidebar.')}</p>
+            <h1>{loadError ? 'Доступ недоступен' : (sharedFolder?.name || 'Notes')}</h1>
+            <p>{loadError || (sharedFolder ? 'Выберите статью в меню.' : shared ? 'Загрузка…' : 'Choose a page from the sidebar.')}</p>
           </div>
         )}
       </main>
 
-      {sharing && note && <ShareDialog key={note.path} note={note} onClose={() => setSharing(false)} />}
+      {sharing && <ShareDialog key={sharing.path} note={sharing} onClose={() => setSharing(false)} />}
       {trashOpen && (
         <div className="trashBackdrop" onMouseDown={() => setTrashOpen(false)}>
           <div className="trashModal" onMouseDown={(e) => e.stopPropagation()}>
