@@ -307,7 +307,7 @@ function LinkCard({ href, children }) {
 /*  Sidebar tree                                                       */
 /* ------------------------------------------------------------------ */
 
-function Tree({ items, onOpen, editor, onMoveFolder }) {
+function Tree({ items, onOpen, editor, onMoveFolder, onDeleteFolder }) {
   return items.map((x) => (
     <div key={x.path} className={x.type === 'folder' ? 'treeFolder' : ''}>
       {x.type === 'folder' ? (
@@ -317,9 +317,10 @@ function Tree({ items, onOpen, editor, onMoveFolder }) {
             <Folder className="folderIcon" size={16} />
             <span>{x.name}</span>
             {editor && <button className="treeAction" type="button" title="Переместить папку" onClick={(e) => { e.preventDefault(); onMoveFolder(x); }}><MoveRight size={14} /></button>}
+            {editor && <button className="treeAction" type="button" title="Удалить папку" aria-label={'Удалить папку «' + x.name + '»'} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDeleteFolder(x); }}><Trash2 size={14} /></button>}
           </summary>
           <div className="nest">
-            <Tree items={x.children} onOpen={onOpen} editor={editor} onMoveFolder={onMoveFolder} />
+            <Tree items={x.children} onOpen={onOpen} editor={editor} onMoveFolder={onMoveFolder} onDeleteFolder={onDeleteFolder} />
           </div>
         </details>
       ) : (
@@ -882,6 +883,15 @@ function Notes() {
       .catch(() => {});
   };
 
+  const removeFolder = async (folder) => {
+    if (!confirm(`Переместить папку «${folder.name}» и всё её содержимое в корзину?`)) return;
+    try {
+      await api('/folder?path=' + encodeURIComponent(folder.path), { method: 'DELETE' });
+      if (note?.path.startsWith(folder.path + '/')) { setNote(null); setEdit(false); setSharing(false); }
+      await loadTree();
+    } catch (e) { alert(e.message); }
+  };
+
   let loadTrash = () => api('/trash').then(setTrash);
 
   let showTrash = () => {
@@ -898,7 +908,7 @@ function Notes() {
       await loadTree();
       await loadTrash();
       setTrashOpen(false);
-      open(x.path);
+      if (x.type !== 'folder') open(x.path);
     } catch (e) {
       alert(e.message);
     }
@@ -1001,7 +1011,7 @@ function Notes() {
           </div>
         )}
 
-        <Tree items={tree} onOpen={open} editor={member} onMoveFolder={(folder) => move(folder, 'folder')} />
+        <Tree items={tree} onOpen={open} editor={member} onMoveFolder={(folder) => move(folder, 'folder')} onDeleteFolder={removeFolder} />
 
         <div className="sideBottom">
           {member && (

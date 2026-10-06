@@ -482,6 +482,38 @@ def delete_note():
 # Trash
 # ------------------------------------------------------------------
 
+def trashed_folder(p):
+    return p.is_dir() and bool(re.match(r'^\d{8}-\d{6}-\d{6}__', p.name))
+
+
+def private_folder(p):
+    return p.is_dir() and any(is_private_note(n) for n in p.rglob('*.md'))
+
+
+@app.delete('/api/folder')
+def delete_folder():
+    if not auth():
+        return jsonify(error='Unauthorized'), 401
+    try:
+        p = safe(request.args.get('path', ''))
+        if p == NOTES.resolve() or not p.is_dir():
+            return jsonify(error='Not found'), 404
+        if role() == 'developer' and private_folder(p):
+            return jsonify(error='Папку с личными страницами может удалить только администратор'), 403
+        rel = p.relative_to(NOTES)
+        dest = TRASH / rel.parent / (datetime.now().strftime('%Y%m%d-%H%M%S-%f') + '__' + rel.name)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(p), str(dest))
+        with share_db() as db:
+            prefix = rel.as_posix() + '/'
+            for path, mode in db.execute('SELECT path, mode FROM shares').fetchall():
+                if path.startswith(prefix):
+                    db.execute('DELETE FROM shares WHERE path=? AND mode=?', (path, mode))
+        return jsonify(ok=True)
+    except (ValueError, OSError) as e:
+        return jsonify(error=str(e)), 400
+
+
 @app.get('/api/trash')
 def trash_list():
     if not auth():
@@ -490,12 +522,17 @@ def trash_list():
     items = []
 
     for p in sorted(
-        TRASH.rglob('*.md'),
+        list(TRASH.rglob('*.md')) + [d for d in TRASH.rglob('*') if trashed_folder(d)],
         key=lambda x: x.stat().st_mtime,
         reverse=True
     ):
         try:
-            meta, body = parse(p)
+            if any(trashed_folder(parent) for parent in p.parents if parent != TRASH and TRASH in parent.parents):
+                continue
+            folder = trashed_folder(p)
+            meta = {} if folder else parse(p)[0]
+            if role() == 'developer' and folder and private_folder(p):
+                continue
 
             if role() == 'developer' and meta.get('private', False):
                 continue
@@ -518,6 +555,7 @@ def trash_list():
             ).as_posix()
 
             items.append({
+                'type': 'folder' if folder else 'note',
                 'trash_path':
                     p.relative_to(TRASH).as_posix(),
 
@@ -526,11 +564,11 @@ def trash_list():
 
                 'title':
                     meta.get('title')
-                    or Path(original_name).stem,
+                    or (original_name if folder else Path(original_name).stem),
 
                 'emoji':
                     meta.get('emoji')
-                    or '📄',
+                    or ('📁' if folder else '📄'),
 
                 'deleted_at':
                     datetime.fromtimestamp(
@@ -574,14 +612,14 @@ def trash_restore():
         if (
             TRASH.resolve()
             not in src.parents
-            or not src.is_file()
+            or not (src.is_file() or trashed_folder(src))
         ):
             return jsonify(
                 error='Not found'
             ), 404
 
 
-        if developer_cannot_access(src):
+        if developer_cannot_access(src) or (role() == 'developer' and private_folder(src)):
             return jsonify(error='Not found'), 404
 
         raw_name = src.name
@@ -627,6 +665,7 @@ def trash_restore():
 
         return jsonify(
             ok=True,
+            type='folder' if dest.is_dir() else 'note',
             path=dest
                 .relative_to(NOTES)
                 .as_posix()
@@ -666,17 +705,20 @@ def trash_delete_forever():
         if (
             TRASH.resolve()
             not in p.parents
-            or not p.is_file()
+            or not (p.is_file() or trashed_folder(p))
         ):
             return jsonify(
                 error='Not found'
             ), 404
 
 
-        if developer_cannot_access(p):
+        if developer_cannot_access(p) or (role() == 'developer' and private_folder(p)):
             return jsonify(error='Not found'), 404
 
-        p.unlink()
+        if p.is_dir():
+            shutil.rmtree(p)
+        else:
+            p.unlink()
 
         return jsonify(ok=True)
 
