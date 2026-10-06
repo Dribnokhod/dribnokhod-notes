@@ -2,6 +2,8 @@ import os
 import re
 import shutil
 import secrets
+import sqlite3
+from contextlib import contextmanager
 import requests
 import yaml
 
@@ -196,6 +198,89 @@ def clear_other_start_pages(current):
 # Tree / start page
 # ------------------------------------------------------------------
 
+@contextmanager
+def share_db():
+    with sqlite3.connect(NOTES.parent / 'shares.sqlite3', timeout=10) as db:
+        db.execute('CREATE TABLE IF NOT EXISTS shares (path TEXT, mode TEXT, token TEXT UNIQUE, PRIMARY KEY(path, mode))')
+        yield db
+
+
+@app.route('/api/shares', methods=['GET', 'POST', 'DELETE'])
+def manage_shares():
+    if not auth():
+        return jsonify(error='Unauthorized'), 401
+    try:
+        p = safe(request.args.get('path', ''))
+        if not p.is_file() or p.suffix.lower() != '.md' or developer_cannot_access(p):
+            return jsonify(error='Not found'), 404
+    except (ValueError, OSError):
+        return jsonify(error='Not found'), 404
+    path = p.relative_to(NOTES).as_posix()
+    with share_db() as db:
+        if request.method != 'GET':
+            mode = (request.get_json(silent=True) or {}).get('mode')
+            if mode not in ('view', 'edit'):
+                return jsonify(error='Invalid sharing mode'), 400
+            if request.method == 'DELETE':
+                db.execute('DELETE FROM shares WHERE path=? AND mode=?', (path, mode))
+            else:
+                db.execute('INSERT OR REPLACE INTO shares VALUES (?, ?, ?)', (path, mode, secrets.token_urlsafe(32)))
+        links = dict(db.execute('SELECT mode, token FROM shares WHERE path=?', (path,)))
+    response = jsonify(links=links)
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
+def shared_note(token):
+    with share_db() as db:
+        row = db.execute('SELECT path, mode FROM shares WHERE token=?', (token,)).fetchone()
+    if row:
+        try:
+            p = safe(row[0])
+            if p.is_file() and p.suffix.lower() == '.md':
+                return p, row[1]
+        except (ValueError, OSError):
+            pass
+    return None, None
+
+
+@app.route('/api/shared/<token>', methods=['GET', 'PUT'])
+def access_shared_note(token):
+    p, mode = shared_note(token)
+    if p is None:
+        return jsonify(error='Ссылка недействительна или доступ отключён'), 404
+    meta, content = parse(p)
+    if request.method == 'PUT':
+        if mode != 'edit':
+            return jsonify(error='Эта ссылка разрешает только просмотр'), 403
+        d = request.get_json(silent=True) or {}
+        incoming = d.get('meta', {})
+        if not isinstance(incoming, dict) or not isinstance(d.get('content', ''), str):
+            return jsonify(error='Invalid note'), 400
+        # Link holders edit content, never visibility or site-wide settings.
+        for key in ('title', 'emoji', 'cover'):
+            if key in incoming:
+                if not isinstance(incoming[key], str):
+                    return jsonify(error='Invalid metadata'), 400
+                meta[key] = incoming[key]
+        content = d.get('content', '')
+        write_note(p, meta, content)
+    response = jsonify(path=p.relative_to(NOTES).as_posix(), meta=meta, content=content, share_mode=mode)
+    response.headers['Cache-Control'] = 'no-store'
+    response.headers['Referrer-Policy'] = 'no-referrer'
+    return response
+
+
+@app.post('/api/shared/<token>/upload')
+def shared_upload(token):
+    p, mode = shared_note(token)
+    if p is None:
+        return jsonify(error='Not found'), 404
+    if mode != 'edit':
+        return jsonify(error='Read-only link'), 403
+    return store_upload()
+
+
 @app.get('/api/tree')
 def get_tree():
     return jsonify(tree())
@@ -358,6 +443,8 @@ def delete_note():
             return jsonify(error='Not found'), 404
 
         rel = p.relative_to(NOTES)
+        with share_db() as db:
+            db.execute('DELETE FROM shares WHERE path=?', (rel.as_posix(),))
 
         stamp = datetime.now().strftime(
             '%Y%m%d-%H%M%S-%f'
@@ -395,6 +482,38 @@ def delete_note():
 # Trash
 # ------------------------------------------------------------------
 
+def trashed_folder(p):
+    return p.is_dir() and bool(re.match(r'^\d{8}-\d{6}-\d{6}__', p.name))
+
+
+def private_folder(p):
+    return p.is_dir() and any(is_private_note(n) for n in p.rglob('*.md'))
+
+
+@app.delete('/api/folder')
+def delete_folder():
+    if not auth():
+        return jsonify(error='Unauthorized'), 401
+    try:
+        p = safe(request.args.get('path', ''))
+        if p == NOTES.resolve() or not p.is_dir():
+            return jsonify(error='Not found'), 404
+        if role() == 'developer' and private_folder(p):
+            return jsonify(error='Папку с личными страницами может удалить только администратор'), 403
+        rel = p.relative_to(NOTES)
+        dest = TRASH / rel.parent / (datetime.now().strftime('%Y%m%d-%H%M%S-%f') + '__' + rel.name)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(p), str(dest))
+        with share_db() as db:
+            prefix = rel.as_posix() + '/'
+            for path, mode in db.execute('SELECT path, mode FROM shares').fetchall():
+                if path.startswith(prefix):
+                    db.execute('DELETE FROM shares WHERE path=? AND mode=?', (path, mode))
+        return jsonify(ok=True)
+    except (ValueError, OSError) as e:
+        return jsonify(error=str(e)), 400
+
+
 @app.get('/api/trash')
 def trash_list():
     if not auth():
@@ -403,12 +522,17 @@ def trash_list():
     items = []
 
     for p in sorted(
-        TRASH.rglob('*.md'),
+        list(TRASH.rglob('*.md')) + [d for d in TRASH.rglob('*') if trashed_folder(d)],
         key=lambda x: x.stat().st_mtime,
         reverse=True
     ):
         try:
-            meta, body = parse(p)
+            if any(trashed_folder(parent) for parent in p.parents if parent != TRASH and TRASH in parent.parents):
+                continue
+            folder = trashed_folder(p)
+            meta = {} if folder else parse(p)[0]
+            if role() == 'developer' and folder and private_folder(p):
+                continue
 
             if role() == 'developer' and meta.get('private', False):
                 continue
@@ -431,6 +555,7 @@ def trash_list():
             ).as_posix()
 
             items.append({
+                'type': 'folder' if folder else 'note',
                 'trash_path':
                     p.relative_to(TRASH).as_posix(),
 
@@ -439,11 +564,11 @@ def trash_list():
 
                 'title':
                     meta.get('title')
-                    or Path(original_name).stem,
+                    or (original_name if folder else Path(original_name).stem),
 
                 'emoji':
                     meta.get('emoji')
-                    or '📄',
+                    or ('📁' if folder else '📄'),
 
                 'deleted_at':
                     datetime.fromtimestamp(
@@ -487,14 +612,14 @@ def trash_restore():
         if (
             TRASH.resolve()
             not in src.parents
-            or not src.is_file()
+            or not (src.is_file() or trashed_folder(src))
         ):
             return jsonify(
                 error='Not found'
             ), 404
 
 
-        if developer_cannot_access(src):
+        if developer_cannot_access(src) or (role() == 'developer' and private_folder(src)):
             return jsonify(error='Not found'), 404
 
         raw_name = src.name
@@ -540,6 +665,7 @@ def trash_restore():
 
         return jsonify(
             ok=True,
+            type='folder' if dest.is_dir() else 'note',
             path=dest
                 .relative_to(NOTES)
                 .as_posix()
@@ -579,17 +705,20 @@ def trash_delete_forever():
         if (
             TRASH.resolve()
             not in p.parents
-            or not p.is_file()
+            or not (p.is_file() or trashed_folder(p))
         ):
             return jsonify(
                 error='Not found'
             ), 404
 
 
-        if developer_cannot_access(p):
+        if developer_cannot_access(p) or (role() == 'developer' and private_folder(p)):
             return jsonify(error='Not found'), 404
 
-        p.unlink()
+        if p.is_dir():
+            shutil.rmtree(p)
+        else:
+            p.unlink()
 
         return jsonify(ok=True)
 
@@ -778,6 +907,14 @@ def move_item():
             str(target)
         )
 
+        old = src.relative_to(NOTES).as_posix()
+        new = target.relative_to(NOTES).as_posix()
+        with share_db() as db:
+            for shared_path, mode in db.execute('SELECT path, mode FROM shares').fetchall():
+                if shared_path == old or shared_path.startswith(old + '/'):
+                    db.execute('UPDATE shares SET path=? WHERE path=? AND mode=?',
+                               (new + shared_path[len(old):], shared_path, mode))
+
         return jsonify(
             ok=True,
             path=target
@@ -800,6 +937,12 @@ def upload():
     if not auth():
         return jsonify(error='Unauthorized'), 401
 
+    return store_upload()
+
+
+def store_upload():
+    if 'file' not in request.files:
+        return jsonify(error='File required'), 400
     f = request.files['file']
 
     name = (
