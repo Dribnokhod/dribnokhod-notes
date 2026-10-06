@@ -23,6 +23,7 @@ import {
   Plus,
   FolderPlus,
   Save,
+  Share2,
   Trash2,
   RotateCcw,
   LogOut,
@@ -794,15 +795,13 @@ function ShareDialog({ note, onClose }) {
   return <div className="trashBackdrop" onMouseDown={onClose}>
     <div className="trashModal shareModal" role="dialog" aria-modal="true" aria-label="Поделиться статьёй" onMouseDown={(e) => e.stopPropagation()}>
       <div className="trashHead"><div><h2>Поделиться</h2><p>{note.meta.title}</p></div><button aria-label="Закрыть" onClick={onClose}>×</button></div>
-      <p>Любой, у кого есть ссылка, получит доступ к этой статье без входа, даже если она не опубликована или личная.</p>
       {['view', 'edit'].map((mode) => <section className="shareRow" key={mode}>
         <h3>{mode === 'view' ? 'Зритель' : 'Редактор'}</h3>
-        <p>{mode === 'view' ? 'Может только читать статью.' : 'Может менять текст, заголовок, обложку и добавлять изображения.'}</p>
         {links[mode] ? <><input aria-label={'Ссылка: ' + mode} readOnly value={url(links[mode])} onFocus={(e) => e.target.select()} />
-          <div className="shareActions"><button disabled={busy} onClick={() => copy(links[mode])}>Копировать ссылку</button><button disabled={busy} onClick={() => change(mode, 'POST')}>Сбросить ссылку</button><button disabled={busy} onClick={() => change(mode, 'DELETE')}>Отключить</button></div></>
+          <div className="shareActions"><button disabled={busy} onClick={() => copy(links[mode])}>Копировать</button><button disabled={busy} onClick={() => change(mode, 'POST')}>Сбросить</button><button disabled={busy} onClick={() => change(mode, 'DELETE')}>Отключить</button></div></>
           : <button disabled={busy} onClick={() => change(mode, 'POST')}>Создать ссылку</button>}
       </section>)}
-      <p role="status">{message}</p>
+      {message && <p role="status">{message}</p>}
     </div>
   </div>;
 }
@@ -1066,7 +1065,7 @@ function Notes() {
                   )}
 
                   {member && <>
-                  <button onClick={() => setSharing(true)}>Поделиться</button>
+                  <button className="shareButton" aria-label="Поделиться" title="Поделиться" onClick={() => setSharing(true)}><Share2 size={18} /></button>
                   <label>
                     <input
                       type="checkbox"
