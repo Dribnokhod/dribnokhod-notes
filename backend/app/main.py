@@ -2,6 +2,8 @@ import os
 import re
 import shutil
 import secrets
+import sqlite3
+from contextlib import contextmanager
 import requests
 import yaml
 
@@ -196,6 +198,89 @@ def clear_other_start_pages(current):
 # Tree / start page
 # ------------------------------------------------------------------
 
+@contextmanager
+def share_db():
+    with sqlite3.connect(NOTES.parent / 'shares.sqlite3', timeout=10) as db:
+        db.execute('CREATE TABLE IF NOT EXISTS shares (path TEXT, mode TEXT, token TEXT UNIQUE, PRIMARY KEY(path, mode))')
+        yield db
+
+
+@app.route('/api/shares', methods=['GET', 'POST', 'DELETE'])
+def manage_shares():
+    if not auth():
+        return jsonify(error='Unauthorized'), 401
+    try:
+        p = safe(request.args.get('path', ''))
+        if not p.is_file() or p.suffix.lower() != '.md' or developer_cannot_access(p):
+            return jsonify(error='Not found'), 404
+    except (ValueError, OSError):
+        return jsonify(error='Not found'), 404
+    path = p.relative_to(NOTES).as_posix()
+    with share_db() as db:
+        if request.method != 'GET':
+            mode = (request.get_json(silent=True) or {}).get('mode')
+            if mode not in ('view', 'edit'):
+                return jsonify(error='Invalid sharing mode'), 400
+            if request.method == 'DELETE':
+                db.execute('DELETE FROM shares WHERE path=? AND mode=?', (path, mode))
+            else:
+                db.execute('INSERT OR REPLACE INTO shares VALUES (?, ?, ?)', (path, mode, secrets.token_urlsafe(32)))
+        links = dict(db.execute('SELECT mode, token FROM shares WHERE path=?', (path,)))
+    response = jsonify(links=links)
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
+def shared_note(token):
+    with share_db() as db:
+        row = db.execute('SELECT path, mode FROM shares WHERE token=?', (token,)).fetchone()
+    if row:
+        try:
+            p = safe(row[0])
+            if p.is_file() and p.suffix.lower() == '.md':
+                return p, row[1]
+        except (ValueError, OSError):
+            pass
+    return None, None
+
+
+@app.route('/api/shared/<token>', methods=['GET', 'PUT'])
+def access_shared_note(token):
+    p, mode = shared_note(token)
+    if p is None:
+        return jsonify(error='Ссылка недействительна или доступ отключён'), 404
+    meta, content = parse(p)
+    if request.method == 'PUT':
+        if mode != 'edit':
+            return jsonify(error='Эта ссылка разрешает только просмотр'), 403
+        d = request.get_json(silent=True) or {}
+        incoming = d.get('meta', {})
+        if not isinstance(incoming, dict) or not isinstance(d.get('content', ''), str):
+            return jsonify(error='Invalid note'), 400
+        # Link holders edit content, never visibility or site-wide settings.
+        for key in ('title', 'emoji', 'cover'):
+            if key in incoming:
+                if not isinstance(incoming[key], str):
+                    return jsonify(error='Invalid metadata'), 400
+                meta[key] = incoming[key]
+        content = d.get('content', '')
+        write_note(p, meta, content)
+    response = jsonify(path=p.relative_to(NOTES).as_posix(), meta=meta, content=content, share_mode=mode)
+    response.headers['Cache-Control'] = 'no-store'
+    response.headers['Referrer-Policy'] = 'no-referrer'
+    return response
+
+
+@app.post('/api/shared/<token>/upload')
+def shared_upload(token):
+    p, mode = shared_note(token)
+    if p is None:
+        return jsonify(error='Not found'), 404
+    if mode != 'edit':
+        return jsonify(error='Read-only link'), 403
+    return store_upload()
+
+
 @app.get('/api/tree')
 def get_tree():
     return jsonify(tree())
@@ -358,6 +443,8 @@ def delete_note():
             return jsonify(error='Not found'), 404
 
         rel = p.relative_to(NOTES)
+        with share_db() as db:
+            db.execute('DELETE FROM shares WHERE path=?', (rel.as_posix(),))
 
         stamp = datetime.now().strftime(
             '%Y%m%d-%H%M%S-%f'
@@ -778,6 +865,14 @@ def move_item():
             str(target)
         )
 
+        old = src.relative_to(NOTES).as_posix()
+        new = target.relative_to(NOTES).as_posix()
+        with share_db() as db:
+            for shared_path, mode in db.execute('SELECT path, mode FROM shares').fetchall():
+                if shared_path == old or shared_path.startswith(old + '/'):
+                    db.execute('UPDATE shares SET path=? WHERE path=? AND mode=?',
+                               (new + shared_path[len(old):], shared_path, mode))
+
         return jsonify(
             ok=True,
             path=target
@@ -800,6 +895,12 @@ def upload():
     if not auth():
         return jsonify(error='Unauthorized'), 401
 
+    return store_upload()
+
+
+def store_upload():
+    if 'file' not in request.files:
+        return jsonify(error='File required'), 400
     f = request.files['file']
 
     name = (

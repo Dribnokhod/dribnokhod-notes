@@ -1708,3 +1708,10 @@ html[data-theme=dark] .tok-type { color: #82aaff }
     width: 100%;
   }
 }
+
+.shareModal { padding: 24px; }
+.shareRow { padding: 16px 0; border-top: 1px solid var(--border); }
+.shareRow h3 { margin: 0; }
+.shareRow p, .shareModal > p { color: var(--muted); }
+.shareRow input { width: 100%; box-sizing: border-box; padding: 10px; margin-bottom: 12px; }
+.shareActions { display: flex; gap: 8px; flex-wrap: wrap; }

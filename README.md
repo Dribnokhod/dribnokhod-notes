@@ -18,6 +18,22 @@ Login sessions for both editor roles are persistent and refreshed for 90 days, s
 or restarting the application does not require entering the password again as long as the
 `SECRET_KEY` value remains unchanged.
 
+## Sharing articles
+
+Open an article as an admin or developer and click **Поделиться**. Create an independent
+**Зритель** (read-only) or **Редактор** (edit) link, then copy it. Anyone holding that link
+can access just that article without logging in, including drafts. An admin can also share
+private articles. Sharing does not publish the article or add it to the public tree.
+
+Link editors can change content, title, emoji and cover, and upload images. They cannot
+change publication/private status, manage links, delete/move articles, or access other
+private notes. **Сбросить ссылку** replaces the selected link and invalidates its previous
+version; **Отключить** revokes it without creating a replacement. The other permission's
+link remains unchanged. Links follow article/folder moves and are revoked on deletion.
+
+Sharing tokens are stored in `data/shares.sqlite3` beside the Markdown notes. Include
+this file in data backups to preserve sharing links across restarts and restores.
+
 ## Obsidian import
 
 Back up the vault first, then:

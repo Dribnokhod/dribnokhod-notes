@@ -771,11 +771,57 @@ function EmojiPicker({ value, onChange }) {
 /*  Notes page                                                         */
 /* ------------------------------------------------------------------ */
 
+function ShareDialog({ note, onClose }) {
+  const [links, setLinks] = useState({});
+  const [busy, setBusy] = useState(true);
+  const [message, setMessage] = useState('');
+  const endpoint = '/shares?path=' + encodeURIComponent(note.path);
+  useEffect(() => {
+    api(endpoint).then((x) => setLinks(x.links)).catch((e) => setMessage(e.message)).finally(() => setBusy(false));
+  }, [endpoint]);
+  const change = async (mode, method) => {
+    if (links[mode] && !confirm(method === 'DELETE' ? 'Отключить доступ по этой ссылке?' : 'Старая ссылка перестанет работать. Сбросить её?')) return;
+    setBusy(true); setMessage('');
+    try { const x = await api(endpoint, { method, body: JSON.stringify({ mode }) }); setLinks(x.links); }
+    catch (e) { setMessage(e.message); }
+    finally { setBusy(false); }
+  };
+  const url = (token) => location.origin + '/notes#share=' + token;
+  const copy = async (token) => {
+    try { await navigator.clipboard.writeText(url(token)); setMessage('Ссылка скопирована'); }
+    catch { setMessage('Выделите ссылку и скопируйте её вручную.'); }
+  };
+  return <div className="trashBackdrop" onMouseDown={onClose}>
+    <div className="trashModal shareModal" role="dialog" aria-modal="true" aria-label="Поделиться статьёй" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="trashHead"><div><h2>Поделиться</h2><p>{note.meta.title}</p></div><button aria-label="Закрыть" onClick={onClose}>×</button></div>
+      <p>Любой, у кого есть ссылка, получит доступ к этой статье без входа, даже если она не опубликована или личная.</p>
+      {['view', 'edit'].map((mode) => <section className="shareRow" key={mode}>
+        <h3>{mode === 'view' ? 'Зритель' : 'Редактор'}</h3>
+        <p>{mode === 'view' ? 'Может только читать статью.' : 'Может менять текст, заголовок, обложку и добавлять изображения.'}</p>
+        {links[mode] ? <><input aria-label={'Ссылка: ' + mode} readOnly value={url(links[mode])} onFocus={(e) => e.target.select()} />
+          <div className="shareActions"><button disabled={busy} onClick={() => copy(links[mode])}>Копировать ссылку</button><button disabled={busy} onClick={() => change(mode, 'POST')}>Сбросить ссылку</button><button disabled={busy} onClick={() => change(mode, 'DELETE')}>Отключить</button></div></>
+          : <button disabled={busy} onClick={() => change(mode, 'POST')}>Создать ссылку</button>}
+      </section>)}
+      <p role="status">{message}</p>
+    </div>
+  </div>;
+}
+
 function Notes() {
   const [tree, setTree] = useState([]);
   const [note, setNote] = useState(null);
   const [role, setRole] = useState('visitor');
-  const editor = role === 'developer' || role === 'admin';
+  const [shareToken, setShareToken] = useState(() => new URLSearchParams(location.hash.slice(1)).get('share'));
+  useEffect(() => {
+    const changed = () => setShareToken(new URLSearchParams(location.hash.slice(1)).get('share'));
+    window.addEventListener('hashchange', changed);
+    return () => window.removeEventListener('hashchange', changed);
+  }, []);
+  const shared = !!shareToken;
+  const member = !shared && (role === 'developer' || role === 'admin');
+  const editor = shared ? note?.share_mode === 'edit' : member;
+  const [sharing, setSharing] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const admin = role === 'admin';
   const [edit, setEdit] = useState(false);
   const [side, setSide] = useState(false);
@@ -784,7 +830,7 @@ function Notes() {
   const [dialog, setDialog] = useState(null);
   const [sidebarWidth, setSidebarWidth] = useState(() => Number(localStorage.sidebarWidth) || 270);
 
-  let loadTree = () => api('/tree').then(setTree);
+  let loadTree = () => shared ? Promise.resolve() : api('/tree').then(setTree);
 
   let open = (p) =>
     api('/note?path=' + encodeURIComponent(p)).then((n) => {
@@ -794,6 +840,14 @@ function Notes() {
     });
 
   useEffect(() => {
+    setNote(null); setEdit(false); setSharing(false); setLoadError(''); setTree([]);
+    if (shared) {
+      let active = true;
+      api('/shared/' + encodeURIComponent(shareToken))
+        .then((n) => { if (active) setNote(n); })
+        .catch((e) => { if (active) setLoadError(e.message); });
+      return () => { active = false; };
+    }
     api('/me').then((x) => setRole(x.role));
     loadTree();
 
@@ -802,13 +856,13 @@ function Notes() {
         if (x.path) open(x.path);
       })
       .catch(() => {});
-  }, []);
+  }, [shareToken]);
 
   let save = () =>
-    api('/note', { method: 'PUT', body: JSON.stringify(note) }).then(() => {
+    api(shared ? '/shared/' + encodeURIComponent(shareToken) : '/note', { method: 'PUT', body: JSON.stringify(note) }).then(() => {
       setEdit(false);
       loadTree();
-    });
+    }).catch((e) => alert(e.message));
 
   let remove = async () => {
     if (!note) return;
@@ -910,7 +964,7 @@ function Notes() {
   let upload = async (f, append = true) => {
     let fd = new FormData();
     fd.append('file', f);
-    let x = await api('/upload', { method: 'POST', body: fd });
+    let x = await api(shared ? '/shared/' + encodeURIComponent(shareToken) + '/upload' : '/upload', { method: 'POST', body: fd });
     if (append) {
       setNote((n) => ({ ...n, content: n.content + `\n![${f.name}](${x.url})\n` }));
     }
@@ -935,7 +989,7 @@ function Notes() {
           </div>
         </div>
 
-        {editor && (
+        {member && (
           <div className="tools">
             <button onClick={() => setDialog({ title: 'Новая страница', nameLabel: 'Название', submit: create })}>
               <Plus size={16} /> Page
@@ -948,16 +1002,16 @@ function Notes() {
           </div>
         )}
 
-        <Tree items={tree} onOpen={open} editor={editor} onMoveFolder={(folder) => move(folder, 'folder')} />
+        <Tree items={tree} onOpen={open} editor={member} onMoveFolder={(folder) => move(folder, 'folder')} />
 
         <div className="sideBottom">
-          {editor && (
+          {member && (
             <button className="trashOpenBtn" onClick={showTrash}>
               <Trash2 size={15} /> Корзина
             </button>
           )}
 
-          {editor ? (
+          {member ? (
             <button
               onClick={() =>
                 api('/logout', { method: 'POST' }).then(() => location.reload())
@@ -1011,6 +1065,8 @@ function Notes() {
                     </button>
                   )}
 
+                  {member && <>
+                  <button onClick={() => setSharing(true)}>Поделиться</button>
                   <label>
                     <input
                       type="checkbox"
@@ -1065,6 +1121,7 @@ function Notes() {
                   <button onClick={() => move(note, 'note')} title="Переместить страницу">
                     <MoveRight size={15} /> Переместить
                   </button>
+                  </>}
                 </div>
               )}
 
@@ -1108,12 +1165,13 @@ function Notes() {
         ) : (
           <div className="empty">
             <span>👋</span>
-            <h1>Notes</h1>
-            <p>Choose a page from the sidebar.</p>
+            <h1>{loadError ? 'Доступ недоступен' : 'Notes'}</h1>
+            <p>{loadError || (shared ? 'Загрузка статьи…' : 'Choose a page from the sidebar.')}</p>
           </div>
         )}
       </main>
 
+      {sharing && note && <ShareDialog key={note.path} note={note} onClose={() => setSharing(false)} />}
       {trashOpen && (
         <div className="trashBackdrop" onMouseDown={() => setTrashOpen(false)}>
           <div className="trashModal" onMouseDown={(e) => e.stopPropagation()}>
