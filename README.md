@@ -31,6 +31,13 @@ private notes. **Сбросить ссылку** replaces the selected link and 
 version; **Отключить** revokes it without creating a replacement. The other permission's
 link remains unchanged. Links follow article/folder moves and are revoked on deletion.
 
+Folders also have a **Поделиться папкой** icon in the tree. Folder links show all nested
+non-private articles, including drafts and articles added later. Editors can edit existing
+articles and upload images, but cannot create/delete/move articles or folders. Personal
+pages stay hidden from folder links; admins can share them individually. Reset and disable
+work independently for viewer/editor links. Folder links follow moves and are revoked when
+the folder is deleted, even if it is later restored.
+
 Sharing tokens are stored in `data/shares.sqlite3` beside the Markdown notes. Include
 this file in data backups to preserve sharing links across restarts and restores.
 

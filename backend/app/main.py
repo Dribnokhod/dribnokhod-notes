@@ -202,6 +202,8 @@ def clear_other_start_pages(current):
 def share_db():
     with sqlite3.connect(NOTES.parent / 'shares.sqlite3', timeout=10) as db:
         db.execute('CREATE TABLE IF NOT EXISTS shares (path TEXT, mode TEXT, token TEXT UNIQUE, PRIMARY KEY(path, mode))')
+        if 'kind' not in [row[1] for row in db.execute('PRAGMA table_info(shares)')]:
+            db.execute("ALTER TABLE shares ADD COLUMN kind TEXT NOT NULL DEFAULT 'note'")
         yield db
 
 
@@ -211,7 +213,7 @@ def manage_shares():
         return jsonify(error='Unauthorized'), 401
     try:
         p = safe(request.args.get('path', ''))
-        if not p.is_file() or p.suffix.lower() != '.md' or developer_cannot_access(p):
+        if p == NOTES.resolve() or not (p.is_dir() or (p.is_file() and p.suffix.lower() == '.md')) or developer_cannot_access(p):
             return jsonify(error='Not found'), 404
     except (ValueError, OSError):
         return jsonify(error='Not found'), 404
@@ -224,28 +226,70 @@ def manage_shares():
             if request.method == 'DELETE':
                 db.execute('DELETE FROM shares WHERE path=? AND mode=?', (path, mode))
             else:
-                db.execute('INSERT OR REPLACE INTO shares VALUES (?, ?, ?)', (path, mode, secrets.token_urlsafe(32)))
+                db.execute('INSERT OR REPLACE INTO shares (path, mode, token, kind) VALUES (?, ?, ?, ?)', (path, mode, secrets.token_urlsafe(32), 'folder' if p.is_dir() else 'note'))
         links = dict(db.execute('SELECT mode, token FROM shares WHERE path=?', (path,)))
     response = jsonify(links=links)
     response.headers['Cache-Control'] = 'no-store'
     return response
 
 
-def shared_note(token):
+def shared_target(token):
     with share_db() as db:
-        row = db.execute('SELECT path, mode FROM shares WHERE token=?', (token,)).fetchone()
+        row = db.execute('SELECT path, mode, kind FROM shares WHERE token=?', (token,)).fetchone()
     if row:
         try:
             p = safe(row[0])
-            if p.is_file() and p.suffix.lower() == '.md':
-                return p, row[1]
+            if (row[2] == 'folder' and p.is_dir()) or (row[2] == 'note' and p.is_file() and p.suffix.lower() == '.md'):
+                return p, row[1], row[2]
         except (ValueError, OSError):
             pass
+    return None, None, None
+
+
+def shared_note(token):
+    root, mode, kind = shared_target(token)
+    if root is None:
+        return None, None
+    if kind == 'note':
+        return root, mode
+    # Folder links expose Markdown articles only, never personal pages.
+    rel = request.args.get('path')
+    if request.method == 'PUT':
+        data = request.get_json(silent=True)
+        rel = data.get('path') if isinstance(data, dict) else None
+    if not isinstance(rel, str):
+        return None, None
+    try:
+        p = safe(rel)
+        if root.resolve() in p.parents and p.is_file() and p.suffix.lower() == '.md' and not is_private_note(p):
+            return p, mode
+    except (ValueError, OSError):
+        pass
     return None, None
+
+
+def shared_tree(root):
+    items = []
+    for p in sorted(root.iterdir(), key=lambda x: (x.is_file(), x.name.lower())):
+        if p.name.startswith('.') or p.is_symlink():
+            continue
+        path = p.relative_to(NOTES).as_posix()
+        if p.is_dir():
+            items.append(dict(type='folder', name=p.name, path=path, children=shared_tree(p)))
+        elif p.suffix.lower() == '.md':
+            meta, _ = parse(p)
+            if not meta.get('private', False):
+                items.append(dict(type='note', name=meta.get('title') or p.stem, path=path, emoji=meta.get('emoji', '📄')))
+    return items
 
 
 @app.route('/api/shared/<token>', methods=['GET', 'PUT'])
 def access_shared_note(token):
+    root, mode, kind = shared_target(token)
+    if root is not None and kind == 'folder' and request.method == 'GET' and 'path' not in request.args:
+        response = jsonify(type='folder', name=root.name, path=root.relative_to(NOTES).as_posix(), tree=shared_tree(root), share_mode=mode)
+        response.headers['Cache-Control'] = 'no-store'
+        return response
     p, mode = shared_note(token)
     if p is None:
         return jsonify(error='Ссылка недействительна или доступ отключён'), 404
@@ -273,7 +317,7 @@ def access_shared_note(token):
 
 @app.post('/api/shared/<token>/upload')
 def shared_upload(token):
-    p, mode = shared_note(token)
+    p, mode, kind = shared_target(token)
     if p is None:
         return jsonify(error='Not found'), 404
     if mode != 'edit':
@@ -507,7 +551,7 @@ def delete_folder():
         with share_db() as db:
             prefix = rel.as_posix() + '/'
             for path, mode in db.execute('SELECT path, mode FROM shares').fetchall():
-                if path.startswith(prefix):
+                if path == rel.as_posix() or path.startswith(prefix):
                     db.execute('DELETE FROM shares WHERE path=? AND mode=?', (path, mode))
         return jsonify(ok=True)
     except (ValueError, OSError) as e:
