@@ -3,6 +3,7 @@ services:
     build: ./backend
     environment:
       NOTES_ADMIN_PASSWORD: ${NOTES_ADMIN_PASSWORD:-change-me}
+      NOTES_DEVELOPER_PASSWORD: ${NOTES_DEVELOPER_PASSWORD:-change-developer-password}
       SECRET_KEY: ${SECRET_KEY:-change-this-secret}
       NOTES_DIR: /data/notes
       UPLOADS_DIR: /data/uploads
@@ -13,5 +14,5 @@ services:
     build: ./frontend
     depends_on: [backend]
     ports:
-      - '8090:80'
+      - '127.0.0.1:8090:80'
     restart: unless-stopped

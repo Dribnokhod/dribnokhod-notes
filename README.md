@@ -10,7 +10,36 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-Open `http://localhost:8090`. Notes are at `/notes`; the deliberately unlinked admin login is `/login`.
+Open `http://localhost:8090`. Notes are at `/notes`; the deliberately unlinked editor login is `/login`.
+Set `NOTES_ADMIN_PASSWORD` and `NOTES_DEVELOPER_PASSWORD` in `.env`. Both roles can edit
+notes, but only the admin can mark pages as private; private pages are completely hidden
+from developers and visitors. Visitors only see published, non-private pages.
+Login sessions for both editor roles are persistent and refreshed for 90 days, so rebuilding
+or restarting the application does not require entering the password again as long as the
+`SECRET_KEY` value remains unchanged.
+
+## Sharing articles
+
+Open an article as an admin or developer and click **Поделиться**. Create an independent
+**Зритель** (read-only) or **Редактор** (edit) link, then copy it. Anyone holding that link
+can access just that article without logging in, including drafts. An admin can also share
+private articles. Sharing does not publish the article or add it to the public tree.
+
+Link editors can change content, title, emoji and cover, and upload images. They cannot
+change publication/private status, manage links, delete/move articles, or access other
+private notes. **Сбросить ссылку** replaces the selected link and invalidates its previous
+version; **Отключить** revokes it without creating a replacement. The other permission's
+link remains unchanged. Links follow article/folder moves and are revoked on deletion.
+
+Folders also have a **Поделиться папкой** icon in the tree. Folder links show all nested
+non-private articles, including drafts and articles added later. Editors can edit existing
+articles and upload images, but cannot create/delete/move articles or folders. Personal
+pages stay hidden from folder links; admins can share them individually. Reset and disable
+work independently for viewer/editor links. Folder links follow moves and are revoked when
+the folder is deleted, even if it is later restored.
+
+Sharing tokens are stored in `data/shares.sqlite3` beside the Markdown notes. Include
+this file in data backups to preserve sharing links across restarts and restores.
 
 ## Obsidian import
 
@@ -33,6 +62,7 @@ title: Page title
 emoji: 🧠
 cover: https://...
 published: true
+private: false
 ---
 ```
 
@@ -40,7 +70,9 @@ This means there is no proprietary note database to escape from. Back up `data/`
 
 ## Production
 
-Put this behind your existing nginx/Caddy TLS proxy. Change both secrets in `.env`. The current MVP uses one password-backed admin session. For Internet exposure, add rate limiting at the reverse proxy and use a strong password.
+Put this behind your existing nginx/Caddy TLS proxy. Change `SECRET_KEY` and both role
+passwords in `.env`. For Internet exposure, add rate limiting at the reverse proxy and use
+strong, distinct passwords.
 
 ## Проверки качества кода
 
@@ -79,7 +111,7 @@ Ruff проверяет потенциальные ошибки Python и пор
 Prettier проверяет JS/JSX, CSS, HTML, JSON, корневую документацию, YAML и
 проектные скиллы. Команды lint и format:check не меняют исходники.
 Vite проверяет сборку и создаёт игнорируемый каталог `frontend/dist`.
-Типизация и автоматические тесты пока не настроены; сборка их не заменяет.
+Проверка типов пока не настроена. Тесты backend находятся в `backend/tests`; сборка их не заменяет.
 
 Конфигурации: [pyproject.toml](pyproject.toml),
 [frontend/eslint.config.mjs](frontend/eslint.config.mjs),
