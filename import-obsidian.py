@@ -4,8 +4,6 @@ import re
 import shutil
 from pathlib import Path
 
-import yaml
-
 p = argparse.ArgumentParser()
 p.add_argument("vault")
 p.add_argument("--out", default="./data/notes")
@@ -46,6 +44,6 @@ for f in src.rglob("*"):
     }:
         try:
             shutil.copy2(f, uploads / f.name)
-        except:
+        except Exception:
             pass
 print(f"Imported {count} markdown files into {dst}")

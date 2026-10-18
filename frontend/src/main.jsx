@@ -25,7 +25,6 @@ import {
   ExternalLink,
   Sun,
   Moon,
-  Image as ImageIcon,
   Palette,
   ChevronDown,
   Folder,
@@ -173,19 +172,6 @@ const GRADIENTS = [
   'linear-gradient(120deg,#fdfbfb 0%,#ebedee 100%)',
 ];
 
-const COMMANDS = [
-  ['Text', 'p'],
-  ['Heading 1', 'h1'],
-  ['Heading 2', 'h2'],
-  ['Heading 3', 'h3'],
-  ['Bulleted list', 'bullet'],
-  ['Numbered list', 'number'],
-  ['Quote', 'quote'],
-  ['Code', 'code'],
-  ['Table', 'table'],
-  ['Image', 'image'],
-];
-
 const SLASH_COMMANDS = [
   ['Text', 'p', (e) => e.chain().focus().setParagraph().run()],
   ['Heading 1', 'h1', (e) => e.chain().focus().toggleHeading({ level: 1 }).run()],
@@ -291,116 +277,6 @@ function Tree({ items, onOpen }) {
       )}
     </div>
   ));
-}
-
-/* ------------------------------------------------------------------ */
-/*  Markdown <-> block conversion                                      */
-/* ------------------------------------------------------------------ */
-
-function mdToBlocks(md = '') {
-  let lines = md.replace(/\r/g, '').split('\n');
-  let out = [];
-  let para = [];
-
-  const flush = () => {
-    if (para.length) {
-      out.push({ type: 'p', text: para.join('\n') });
-      para = [];
-    }
-  };
-
-  for (let i = 0; i < lines.length; i++) {
-    let l = lines[i];
-
-    if (l.startsWith('```')) {
-      flush();
-      let lang = l.slice(3);
-      let buf = [];
-      while (++i < lines.length && !lines[i].startsWith('```')) buf.push(lines[i]);
-      out.push({ type: 'code', text: buf.join('\n'), lang });
-      continue;
-    }
-
-    if (/^#{1,3} /.test(l)) {
-      flush();
-      let m = l.match(/^(#{1,3}) (.*)$/);
-      out.push({ type: 'h' + m[1].length, text: m[2] });
-      continue;
-    }
-
-    if (/^> /.test(l)) {
-      flush();
-      out.push({ type: 'quote', text: l.slice(2) });
-      continue;
-    }
-
-    if (/^[-*] /.test(l)) {
-      flush();
-      out.push({ type: 'bullet', text: l.slice(2) });
-      continue;
-    }
-
-    if (/^\d+\. /.test(l)) {
-      flush();
-      out.push({ type: 'number', text: l.replace(/^\d+\. /, '') });
-      continue;
-    }
-
-    if (/^!\[.*?\]\(.+\)$/.test(l)) {
-      flush();
-      let m = l.match(/^!\[(.*?)\]\((.+)\)$/);
-      out.push({ type: 'image', text: m[1], url: m[2] });
-      continue;
-    }
-
-    if (
-      l.includes('|') &&
-      i + 1 < lines.length &&
-      /^\s*\|?\s*:?-+/.test(lines[i + 1])
-    ) {
-      flush();
-      let buf = [l, lines[++i]];
-      while (i + 1 < lines.length && lines[i + 1].includes('|')) buf.push(lines[++i]);
-      out.push({ type: 'table', text: buf.join('\n') });
-      continue;
-    }
-
-    if (!l.trim()) {
-      flush();
-    } else {
-      para.push(l);
-    }
-  }
-
-  flush();
-  return out.length ? out : [{ type: 'p', text: '' }];
-}
-
-function blocksToMd(bs) {
-  return (
-    bs
-      .map((b) => {
-        let p =
-          b.type === 'h1'
-            ? '# '
-            : b.type === 'h2'
-              ? '## '
-              : b.type === 'h3'
-                ? '### '
-                : b.type === 'quote'
-                  ? '> '
-                  : b.type === 'bullet'
-                    ? '- '
-                    : b.type === 'number'
-                      ? '1. '
-                      : '';
-
-        if (b.type === 'code') return '```' + (b.lang || '') + '\n' + b.text + '\n```';
-        if (b.type === 'image') return `![${b.text || ''}](${b.url || ''})`;
-        return p + b.text;
-      })
-      .join('\n\n') + '\n'
-  );
 }
 
 /* ------------------------------------------------------------------ */
