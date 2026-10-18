@@ -53,15 +53,113 @@ const api = (u, o = {}) =>
 /* ------------------------------------------------------------------ */
 
 const EMOJIS = [
-  '📝', '📄', '📚', '📖', '📕', '📗', '📘', '📙', '📓', '📒', '🗒️', '📔', '🔖',
-  '💡', '🧠', '💻', '⌨️', '🖥️', '📱', '🛠️', '🔧', '🔨', '⚙️', '🧰', '📊', '📈',
-  '📉', '🧮', '🔬', '🧪', '🎓', '🏫', '🏗️', '🏢', '🏠', '🗄️', '🚀', '🛰️', '🌐',
-  '🔗', '📌', '📍', '🧷', '✅', '☑️', '❗', '❓', '⚠️', '⭐', '🌟', '✨', '🔥',
-  '❤️', '🧡', '💛', '💚', '💙', '💜', '🤍', '👀', '🎯', '🏆', '🥇', '🧩', '🗺️',
-  '🧭', '📷', '🎥', '🎨', '🖌️', '💬', '💭', '📦', '🔐', '🔑', '☕', '🍵', '🌙',
-  '☀️', '🌱', '🌿', '🌳', '🌊', '⛰️', '🐍', '🐳', '🦊', '🐧', '🐱', '🐶', '🍀',
-  '⚡', '🎵', '🎧', '🎮', '♟️', '⚽', '🏀', '✈️', '🚗', '🚲', '🧳', '💰', '💎',
-  '🕒', '📅', '🗑️',
+  '📝',
+  '📄',
+  '📚',
+  '📖',
+  '📕',
+  '📗',
+  '📘',
+  '📙',
+  '📓',
+  '📒',
+  '🗒️',
+  '📔',
+  '🔖',
+  '💡',
+  '🧠',
+  '💻',
+  '⌨️',
+  '🖥️',
+  '📱',
+  '🛠️',
+  '🔧',
+  '🔨',
+  '⚙️',
+  '🧰',
+  '📊',
+  '📈',
+  '📉',
+  '🧮',
+  '🔬',
+  '🧪',
+  '🎓',
+  '🏫',
+  '🏗️',
+  '🏢',
+  '🏠',
+  '🗄️',
+  '🚀',
+  '🛰️',
+  '🌐',
+  '🔗',
+  '📌',
+  '📍',
+  '🧷',
+  '✅',
+  '☑️',
+  '❗',
+  '❓',
+  '⚠️',
+  '⭐',
+  '🌟',
+  '✨',
+  '🔥',
+  '❤️',
+  '🧡',
+  '💛',
+  '💚',
+  '💙',
+  '💜',
+  '🤍',
+  '👀',
+  '🎯',
+  '🏆',
+  '🥇',
+  '🧩',
+  '🗺️',
+  '🧭',
+  '📷',
+  '🎥',
+  '🎨',
+  '🖌️',
+  '💬',
+  '💭',
+  '📦',
+  '🔐',
+  '🔑',
+  '☕',
+  '🍵',
+  '🌙',
+  '☀️',
+  '🌱',
+  '🌿',
+  '🌳',
+  '🌊',
+  '⛰️',
+  '🐍',
+  '🐳',
+  '🦊',
+  '🐧',
+  '🐱',
+  '🐶',
+  '🍀',
+  '⚡',
+  '🎵',
+  '🎧',
+  '🎮',
+  '♟️',
+  '⚽',
+  '🏀',
+  '✈️',
+  '🚗',
+  '🚲',
+  '🧳',
+  '💰',
+  '💎',
+  '🕒',
+  '📅',
+  '🗑️',
 ];
 
 const GRADIENTS = [
@@ -286,16 +384,16 @@ function blocksToMd(bs) {
           b.type === 'h1'
             ? '# '
             : b.type === 'h2'
-            ? '## '
-            : b.type === 'h3'
-            ? '### '
-            : b.type === 'quote'
-            ? '> '
-            : b.type === 'bullet'
-            ? '- '
-            : b.type === 'number'
-            ? '1. '
-            : '';
+              ? '## '
+              : b.type === 'h3'
+                ? '### '
+                : b.type === 'quote'
+                  ? '> '
+                  : b.type === 'bullet'
+                    ? '- '
+                    : b.type === 'number'
+                      ? '1. '
+                      : '';
 
         if (b.type === 'code') return '```' + (b.lang || '') + '\n' + b.text + '\n```';
         if (b.type === 'image') return `![${b.text || ''}](${b.url || ''})`;
@@ -351,16 +449,16 @@ function RichEditor({ note, setNote, upload }) {
       attributes: { class: 'tiptapEditor' },
       handlePaste(view, event) {
         const f = [...(event.clipboardData?.files || [])].find((x) =>
-          x.type.startsWith('image/')
+          x.type.startsWith('image/'),
         );
         if (!f) return false;
         event.preventDefault();
         upload(f, false).then((x) =>
           view.dispatch(
             view.state.tr.replaceSelectionWith(
-              view.state.schema.nodes.image.create({ src: x.url, alt: f.name })
-            )
-          )
+              view.state.schema.nodes.image.create({ src: x.url, alt: f.name }),
+            ),
+          ),
         );
         return true;
       },
@@ -379,7 +477,11 @@ function RichEditor({ note, setNote, upload }) {
   const cmd = (fn) => {
     const { from } = editor.state.selection;
     if (editor.state.doc.textBetween(Math.max(0, from - 1), from) === '/') {
-      editor.chain().focus().deleteRange({ from: from - 1, to: from }).run();
+      editor
+        .chain()
+        .focus()
+        .deleteRange({ from: from - 1, to: from })
+        .run();
     }
     fn(editor);
     setSlash(false);
@@ -423,12 +525,30 @@ function RichEditor({ note, setNote, upload }) {
           <u>U</u>
         </button>
         <span></span>
-        <button onClick={() => editor.chain().focus().setParagraph().run()}>Text</button>
-        <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}>H1</button>
-        <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>H2</button>
-        <button onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>H3</button>
-        <button onClick={() => editor.chain().focus().toggleBulletList().run()}>• List</button>
-        <button onClick={() => editor.chain().focus().toggleOrderedList().run()}>1. List</button>
+        <button onClick={() => editor.chain().focus().setParagraph().run()}>
+          Text
+        </button>
+        <button
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+        >
+          H1
+        </button>
+        <button
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+        >
+          H2
+        </button>
+        <button
+          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+        >
+          H3
+        </button>
+        <button onClick={() => editor.chain().focus().toggleBulletList().run()}>
+          • List
+        </button>
+        <button onClick={() => editor.chain().focus().toggleOrderedList().run()}>
+          1. List
+        </button>
         <button onClick={addLink}>Link</button>
         <button onClick={() => fileRef.current?.click()}>Image</button>
         <button onClick={() => editor.chain().focus().undo().run()}>↶</button>
@@ -466,7 +586,11 @@ function RichEditor({ note, setNote, upload }) {
                 e.preventDefault();
                 let { from } = editor.state.selection;
                 if (editor.state.doc.textBetween(Math.max(0, from - 1), from) === '/') {
-                  editor.chain().focus().deleteRange({ from: from - 1, to: from }).run();
+                  editor
+                    .chain()
+                    .focus()
+                    .deleteRange({ from: from - 1, to: from })
+                    .run();
                 }
                 fileRef.current?.click();
                 setSlash(false);
@@ -515,7 +639,9 @@ function CoverPicker({ note, setNote }) {
           <input
             placeholder="Or image URL"
             value={
-              note.meta.cover?.startsWith('linear-gradient') ? '' : note.meta.cover || ''
+              note.meta.cover?.startsWith('linear-gradient')
+                ? ''
+                : note.meta.cover || ''
             }
             onChange={(e) =>
               setNote({ ...note, meta: { ...note.meta, cover: e.target.value } })
@@ -649,7 +775,7 @@ function Notes() {
   let deleteForever = async (item) => {
     if (
       !confirm(
-        `Удалить «${item.title}» навсегда?\n\nВосстановить страницу после этого будет нельзя.`
+        `Удалить «${item.title}» навсегда?\n\nВосстановить страницу после этого будет нельзя.`,
       )
     ) {
       return;
@@ -760,7 +886,9 @@ function Notes() {
                 {edit ? (
                   <EmojiPicker
                     value={note.meta.emoji}
-                    onChange={(emoji) => setNote({ ...note, meta: { ...note.meta, emoji } })}
+                    onChange={(emoji) =>
+                      setNote({ ...note, meta: { ...note.meta, emoji } })
+                    }
                   />
                 ) : (
                   <div className="emoji">{note.meta.emoji || '📄'}</div>
@@ -770,7 +898,9 @@ function Notes() {
 
               {admin && (
                 <div className="adminbar">
-                  <button onClick={() => setEdit(!edit)}>{edit ? 'Done' : 'Edit'}</button>
+                  <button onClick={() => setEdit(!edit)}>
+                    {edit ? 'Done' : 'Edit'}
+                  </button>
 
                   {edit && (
                     <button className="save" onClick={save}>
@@ -822,7 +952,10 @@ function Notes() {
                     className="titleInput"
                     value={note.meta.title || ''}
                     onChange={(e) =>
-                      setNote({ ...note, meta: { ...note.meta, title: e.target.value } })
+                      setNote({
+                        ...note,
+                        meta: { ...note.meta, title: e.target.value },
+                      })
                     }
                   />
                   <RichEditor
@@ -1030,9 +1163,9 @@ function Home() {
               <span>01</span>
               <h3>Система заказа транспорта</h3>
               <p>
-                Проект создан как решение для хакатона. Его задача — управление транспортом
-                внутри строительной компании. За два дня наша команда сделала более 80
-                коммитов и вышла в финал соревнования.
+                Проект создан как решение для хакатона. Его задача — управление
+                транспортом внутри строительной компании. За два дня наша команда
+                сделала более 80 коммитов и вышла в финал соревнования.
               </p>
               <small>ASP.NET Core · EF Core · PostgreSQL · Docker</small>
               <a href="https://github.com/zemlianin/Ordering-transport">GitHub →</a>
@@ -1042,9 +1175,9 @@ function Home() {
               <span>02</span>
               <h3>Backend платформы для хакатонов</h3>
               <p>
-                Курсовой проект, выполненный в рамках обучения от Сбера: backend-платформа
-                для организации хакатонов по Data Science. В проекте более 230 коммитов, а
-                работа получила высшую оценку в университете.
+                Курсовой проект, выполненный в рамках обучения от Сбера:
+                backend-платформа для организации хакатонов по Data Science. В проекте
+                более 230 коммитов, а работа получила высшую оценку в университете.
               </p>
               <small>Django · PostgreSQL · Nginx · GitHub Actions · Docker</small>
               <a href="https://github.com/BankingBattle/BB_back">GitHub →</a>
@@ -1054,8 +1187,8 @@ function Home() {
               <span>03</span>
               <h3>Система мониторинга</h3>
               <p>
-                Система мониторинга платформы для хакатонов, отображающая более 30 метрик о
-                трафике и состоянии различных модулей приложения.
+                Система мониторинга платформы для хакатонов, отображающая более 30
+                метрик о трафике и состоянии различных модулей приложения.
               </p>
               <small>Prometheus · Grafana · Nginx</small>
               <a href="https://github.com/BankingBattle/BB_monitoring">GitHub →</a>
@@ -1083,5 +1216,5 @@ function Home() {
 let path = location.pathname;
 
 createRoot(document.getElementById('root')).render(
-  path === '/login' ? <Login /> : path.startsWith('/notes') ? <Notes /> : <Home />
+  path === '/login' ? <Login /> : path.startsWith('/notes') ? <Notes /> : <Home />,
 );

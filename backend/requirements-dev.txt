@@ -1,0 +1,2 @@
+# Development tools only; application dependencies remain in requirements.txt.
+ruff==0.14.14

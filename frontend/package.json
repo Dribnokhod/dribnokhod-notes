@@ -1,1 +1,40 @@
-{"scripts":{"build":"vite build","dev":"vite"},"dependencies":{"@vitejs/plugin-react":"latest","vite":"latest","react":"latest","react-dom":"latest","react-markdown":"latest","remark-gfm":"latest","lucide-react":"latest","@tiptap/react":"latest","@tiptap/pm":"latest","@tiptap/starter-kit":"latest","@tiptap/extension-underline":"latest","@tiptap/extension-link":"latest","@tiptap/extension-image":"latest","@tiptap/extension-table":"latest","@tiptap/extension-table-row":"latest","@tiptap/extension-table-header":"latest","@tiptap/extension-table-cell":"latest","marked":"latest","turndown":"latest","turndown-plugin-gfm":"latest"},"devDependencies":{}}
+{
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "lint:fix": "eslint . --fix --fix-type problem,suggestion --max-warnings 0",
+    "format:write": "prettier --write --config ../.prettierrc.json --ignore-path ../.prettierignore \"src/**/*.{js,jsx,css}\" index.html package.json eslint.config.mjs ../.prettierrc.json \"../*.{md,yml,yaml}\" \"../.agents/skills/**/*.md\"",
+    "format:check": "prettier --check --config ../.prettierrc.json --ignore-path ../.prettierignore \"src/**/*.{js,jsx,css}\" index.html package.json eslint.config.mjs ../.prettierrc.json \"../*.{md,yml,yaml}\" \"../.agents/skills/**/*.md\"",
+    "lint": "eslint . --max-warnings 0"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "vite": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-markdown": "latest",
+    "remark-gfm": "latest",
+    "lucide-react": "latest",
+    "@tiptap/react": "latest",
+    "@tiptap/pm": "latest",
+    "@tiptap/starter-kit": "latest",
+    "@tiptap/extension-underline": "latest",
+    "@tiptap/extension-link": "latest",
+    "@tiptap/extension-image": "latest",
+    "@tiptap/extension-table": "latest",
+    "@tiptap/extension-table-row": "latest",
+    "@tiptap/extension-table-header": "latest",
+    "@tiptap/extension-table-cell": "latest",
+    "marked": "latest",
+    "turndown": "latest",
+    "turndown-plugin-gfm": "latest"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.1",
+    "eslint": "9.39.1",
+    "eslint-plugin-react": "7.37.5",
+    "eslint-plugin-react-hooks": "7.0.1",
+    "globals": "16.5.0",
+    "prettier": "3.8.1"
+  }
+}
