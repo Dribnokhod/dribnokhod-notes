@@ -1,0 +1,18 @@
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+force-exclude = true
+extend-exclude = [
+  "data", "uploads", "secrets", "Microsoft", ".git", ".env", ".env.*",
+  ".agents", ".codex", ".aws", "node_modules", ".venv", "venv", "env",
+  "ENV", "__pycache__", "dist", "build", "coverage", "htmlcov",
+  "obsidian-vault", "docker-data", "volumes", "exports", "backups",
+]
+
+[tool.ruff.lint]
+select = ["F", "E9", "E722", "I"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"

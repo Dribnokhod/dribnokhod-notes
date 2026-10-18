@@ -30,7 +30,6 @@ import {
   ExternalLink,
   Sun,
   Moon,
-  Image as ImageIcon,
   Palette,
   ChevronDown,
   Folder,
@@ -60,15 +59,113 @@ const api = (u, o = {}) =>
 /* ------------------------------------------------------------------ */
 
 const EMOJIS = [
-  '📝', '📄', '📚', '📖', '📕', '📗', '📘', '📙', '📓', '📒', '🗒️', '📔', '🔖',
-  '💡', '🧠', '💻', '⌨️', '🖥️', '📱', '🛠️', '🔧', '🔨', '⚙️', '🧰', '📊', '📈',
-  '📉', '🧮', '🔬', '🧪', '🎓', '🏫', '🏗️', '🏢', '🏠', '🗄️', '🚀', '🛰️', '🌐',
-  '🔗', '📌', '📍', '🧷', '✅', '☑️', '❗', '❓', '⚠️', '⭐', '🌟', '✨', '🔥',
-  '❤️', '🧡', '💛', '💚', '💙', '💜', '🤍', '👀', '🎯', '🏆', '🥇', '🧩', '🗺️',
-  '🧭', '📷', '🎥', '🎨', '🖌️', '💬', '💭', '📦', '🔐', '🔑', '☕', '🍵', '🌙',
-  '☀️', '🌱', '🌿', '🌳', '🌊', '⛰️', '🐍', '🐳', '🦊', '🐧', '🐱', '🐶', '🍀',
-  '⚡', '🎵', '🎧', '🎮', '♟️', '⚽', '🏀', '✈️', '🚗', '🚲', '🧳', '💰', '💎',
-  '🕒', '📅', '🗑️',
+  '📝',
+  '📄',
+  '📚',
+  '📖',
+  '📕',
+  '📗',
+  '📘',
+  '📙',
+  '📓',
+  '📒',
+  '🗒️',
+  '📔',
+  '🔖',
+  '💡',
+  '🧠',
+  '💻',
+  '⌨️',
+  '🖥️',
+  '📱',
+  '🛠️',
+  '🔧',
+  '🔨',
+  '⚙️',
+  '🧰',
+  '📊',
+  '📈',
+  '📉',
+  '🧮',
+  '🔬',
+  '🧪',
+  '🎓',
+  '🏫',
+  '🏗️',
+  '🏢',
+  '🏠',
+  '🗄️',
+  '🚀',
+  '🛰️',
+  '🌐',
+  '🔗',
+  '📌',
+  '📍',
+  '🧷',
+  '✅',
+  '☑️',
+  '❗',
+  '❓',
+  '⚠️',
+  '⭐',
+  '🌟',
+  '✨',
+  '🔥',
+  '❤️',
+  '🧡',
+  '💛',
+  '💚',
+  '💙',
+  '💜',
+  '🤍',
+  '👀',
+  '🎯',
+  '🏆',
+  '🥇',
+  '🧩',
+  '🗺️',
+  '🧭',
+  '📷',
+  '🎥',
+  '🎨',
+  '🖌️',
+  '💬',
+  '💭',
+  '📦',
+  '🔐',
+  '🔑',
+  '☕',
+  '🍵',
+  '🌙',
+  '☀️',
+  '🌱',
+  '🌿',
+  '🌳',
+  '🌊',
+  '⛰️',
+  '🐍',
+  '🐳',
+  '🦊',
+  '🐧',
+  '🐱',
+  '🐶',
+  '🍀',
+  '⚡',
+  '🎵',
+  '🎧',
+  '🎮',
+  '♟️',
+  '⚽',
+  '🏀',
+  '✈️',
+  '🚗',
+  '🚲',
+  '🧳',
+  '💰',
+  '💎',
+  '🕒',
+  '📅',
+  '🗑️',
 ];
 
 const GRADIENTS = [
@@ -80,19 +177,6 @@ const GRADIENTS = [
   'linear-gradient(120deg,#667eea 0%,#764ba2 100%)',
   'linear-gradient(120deg,#232526 0%,#414345 100%)',
   'linear-gradient(120deg,#fdfbfb 0%,#ebedee 100%)',
-];
-
-const COMMANDS = [
-  ['Text', 'p'],
-  ['Heading 1', 'h1'],
-  ['Heading 2', 'h2'],
-  ['Heading 3', 'h3'],
-  ['Bulleted list', 'bullet'],
-  ['Numbered list', 'number'],
-  ['Quote', 'quote'],
-  ['Code', 'code'],
-  ['Table', 'table'],
-  ['Image', 'image'],
 ];
 
 const SLASH_COMMANDS = [
@@ -113,12 +197,31 @@ const SLASH_COMMANDS = [
 ];
 
 const CODE_LANGUAGES = [
-  ['Plain text', ''], ['C#', 'csharp'], ['Shell / Bash', 'bash'], ['PowerShell', 'powershell'],
-  ['JavaScript', 'javascript'], ['TypeScript', 'typescript'], ['Python', 'python'], ['SQL', 'sql'],
-  ['JSON', 'json'], ['HTML', 'html'], ['CSS', 'css'], ['Dockerfile', 'dockerfile'],
+  ['Plain text', ''],
+  ['C#', 'csharp'],
+  ['Shell / Bash', 'bash'],
+  ['PowerShell', 'powershell'],
+  ['JavaScript', 'javascript'],
+  ['TypeScript', 'typescript'],
+  ['Python', 'python'],
+  ['SQL', 'sql'],
+  ['JSON', 'json'],
+  ['HTML', 'html'],
+  ['CSS', 'css'],
+  ['Dockerfile', 'dockerfile'],
 ];
 
-const LANGUAGE_ALIASES = { cs: 'csharp', 'c#': 'csharp', sh: 'bash', shell: 'bash', ps1: 'powershell', ps: 'powershell', js: 'javascript', ts: 'typescript', py: 'python' };
+const LANGUAGE_ALIASES = {
+  cs: 'csharp',
+  'c#': 'csharp',
+  sh: 'bash',
+  shell: 'bash',
+  ps1: 'powershell',
+  ps: 'powershell',
+  js: 'javascript',
+  ts: 'typescript',
+  py: 'python',
+};
 
 function normalizeLanguage(language = '') {
   return LANGUAGE_ALIASES[language.toLowerCase()] || language.toLowerCase();
@@ -129,28 +232,37 @@ function normalizeLanguage(language = '') {
 function codeTokens(source, language = '') {
   const lang = normalizeLanguage(language);
   if (!lang) return [{ text: source, type: '' }];
-  const keywords = {
-    csharp: 'abstract as async await base bool break byte case catch char checked class const continue decimal default delegate do double else enum event explicit extern false finally fixed float for foreach goto if implicit in int interface internal is lock long namespace new null object operator out override params private protected public readonly ref return sbyte sealed short sizeof stackalloc static string struct switch this throw true try typeof uint ulong unchecked unsafe ushort using virtual void volatile while yield',
-    bash: 'if then else elif fi for while in do done case esac function select time until',
-    powershell: 'begin break catch class continue data define do dynamicparam else elseif end enum exit filter finally for foreach from function if in param process return switch throw trap try until using var while workflow',
-    javascript: 'async await break case catch class const continue debugger default delete do else export extends false finally for from function get if import in instanceof let new null of return set static super switch this throw true try typeof undefined var void while with yield',
-    typescript: 'abstract any as async await boolean break case catch class const constructor continue declare default delete do else enum export extends false finally for from function get if implements import in infer instanceof interface keyof let module namespace never new null number object of private protected public readonly return set static string super switch symbol this throw true try type typeof undefined unknown var void while yield',
-    python: 'and as assert async await break class continue def del elif else except false finally for from global if import in is lambda none nonlocal not or pass raise return true try while with yield',
-    sql: 'add alter and as asc between by case column create database default delete desc distinct drop else end exists from group having in index insert into is join like limit not null on or order primary references select set table then union unique update values view when where',
-  }[lang] || '';
+  const keywords =
+    {
+      csharp:
+        'abstract as async await base bool break byte case catch char checked class const continue decimal default delegate do double else enum event explicit extern false finally fixed float for foreach goto if implicit in int interface internal is lock long namespace new null object operator out override params private protected public readonly ref return sbyte sealed short sizeof stackalloc static string struct switch this throw true try typeof uint ulong unchecked unsafe ushort using virtual void volatile while yield',
+      bash: 'if then else elif fi for while in do done case esac function select time until',
+      powershell:
+        'begin break catch class continue data define do dynamicparam else elseif end enum exit filter finally for foreach from function if in param process return switch throw trap try until using var while workflow',
+      javascript:
+        'async await break case catch class const continue debugger default delete do else export extends false finally for from function get if import in instanceof let new null of return set static super switch this throw true try typeof undefined var void while with yield',
+      typescript:
+        'abstract any as async await boolean break case catch class const constructor continue declare default delete do else enum export extends false finally for from function get if implements import in infer instanceof interface keyof let module namespace never new null number object of private protected public readonly return set static string super switch symbol this throw true try type typeof undefined unknown var void while yield',
+      python:
+        'and as assert async await break class continue def del elif else except false finally for from global if import in is lambda none nonlocal not or pass raise return true try while with yield',
+      sql: 'add alter and as asc between by case column create database default delete desc distinct drop else end exists from group having in index insert into is join like limit not null on or order primary references select set table then union unique update values view when where',
+    }[lang] || '';
   const keywordSet = new Set(keywords.split(' ').filter(Boolean));
-  const pattern = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/|#[^\n]*|<!--[\s\S]*?-->|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\b\d+(?:\.\d+)?\b|\b[A-Za-z_$][\w$-]*\b)/g;
+  const pattern =
+    /(\/\/[^\n]*|\/\*[\s\S]*?\*\/|#[^\n]*|<!--[\s\S]*?-->|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\b\d+(?:\.\d+)?\b|\b[A-Za-z_$][\w$-]*\b)/g;
   const result = [];
   let cursor = 0;
   for (const match of source.matchAll(pattern)) {
-    if (match.index > cursor) result.push({ text: source.slice(cursor, match.index), type: '' });
+    if (match.index > cursor)
+      result.push({ text: source.slice(cursor, match.index), type: '' });
     const value = match[0];
     let type = '';
     if (/^(\/\/|\/\*|#|<!--)/.test(value)) type = 'comment';
     else if (/^["'`]/.test(value)) type = 'string';
     else if (/^\d/.test(value)) type = 'number';
     else if (keywordSet.has(value.toLowerCase())) type = 'keyword';
-    else if (/^[A-Z]/.test(value) && ['csharp', 'typescript'].includes(lang)) type = 'type';
+    else if (/^[A-Z]/.test(value) && ['csharp', 'typescript'].includes(lang))
+      type = 'type';
     result.push({ text: value, type });
     cursor = match.index + value.length;
   }
@@ -164,8 +276,13 @@ const LanguageCodeBlock = CodeBlock.extend({
       ...this.parent?.(),
       language: {
         default: '',
-        parseHTML: (element) => normalizeLanguage(element.firstElementChild?.className.match(/language-([\w#+-]+)/)?.[1] || ''),
-        renderHTML: ({ language }) => language ? { class: `language-${normalizeLanguage(language)}` } : {},
+        parseHTML: (element) =>
+          normalizeLanguage(
+            element.firstElementChild?.className.match(/language-([\w#+-]+)/)?.[1] ||
+              '',
+          ),
+        renderHTML: ({ language }) =>
+          language ? { class: `language-${normalizeLanguage(language)}` } : {},
       },
     };
   },
@@ -174,23 +291,32 @@ const LanguageCodeBlock = CodeBlock.extend({
 const SyntaxHighlight = Extension.create({
   name: 'syntaxHighlight',
   addProseMirrorPlugins() {
-    return [new Plugin({
-      key: new PluginKey('syntaxHighlight'),
-      props: {
-        decorations(state) {
-          const decorations = [];
-          state.doc.descendants((node, pos) => {
-            if (node.type.name !== 'codeBlock' || !node.attrs.language) return;
-            let offset = 0;
-            codeTokens(node.textContent, node.attrs.language).forEach((token) => {
-              if (token.type) decorations.push(Decoration.inline(pos + 1 + offset, pos + 1 + offset + token.text.length, { class: `tok-${token.type}` }));
-              offset += token.text.length;
+    return [
+      new Plugin({
+        key: new PluginKey('syntaxHighlight'),
+        props: {
+          decorations(state) {
+            const decorations = [];
+            state.doc.descendants((node, pos) => {
+              if (node.type.name !== 'codeBlock' || !node.attrs.language) return;
+              let offset = 0;
+              codeTokens(node.textContent, node.attrs.language).forEach((token) => {
+                if (token.type)
+                  decorations.push(
+                    Decoration.inline(
+                      pos + 1 + offset,
+                      pos + 1 + offset + token.text.length,
+                      { class: `tok-${token.type}` },
+                    ),
+                  );
+                offset += token.text.length;
+              });
             });
-          });
-          return DecorationSet.create(state.doc, decorations);
+            return DecorationSet.create(state.doc, decorations);
+          },
         },
-      },
-    })];
+      }),
+    ];
   },
 });
 
@@ -198,12 +324,36 @@ function styleMark(name, property, tag) {
   return Mark.create({
     name,
     addAttributes() {
-      return { color: { default: null, parseHTML: (el) => el.style[property], renderHTML: ({ color }) => color ? { style: `${tag}: ${color}` } : {} } };
+      return {
+        color: {
+          default: null,
+          parseHTML: (el) => el.style[property],
+          renderHTML: ({ color }) => (color ? { style: `${tag}: ${color}` } : {}),
+        },
+      };
     },
-    parseHTML() { return [{ tag: 'span[style]', getAttrs: (element) => element.style[property] ? {} : false }]; },
-    renderHTML({ HTMLAttributes }) { return ['span', HTMLAttributes, 0]; },
+    parseHTML() {
+      return [
+        {
+          tag: 'span[style]',
+          getAttrs: (element) => (element.style[property] ? {} : false),
+        },
+      ];
+    },
+    renderHTML({ HTMLAttributes }) {
+      return ['span', HTMLAttributes, 0];
+    },
     addCommands() {
-      return { [`set${name[0].toUpperCase() + name.slice(1)}`]: (attributes) => ({ commands }) => commands.setMark(name, attributes), [`unset${name[0].toUpperCase() + name.slice(1)}`]: () => ({ commands }) => commands.unsetMark(name) };
+      return {
+        [`set${name[0].toUpperCase() + name.slice(1)}`]:
+          (attributes) =>
+          ({ commands }) =>
+            commands.setMark(name, attributes),
+        [`unset${name[0].toUpperCase() + name.slice(1)}`]:
+          () =>
+          ({ commands }) =>
+            commands.unsetMark(name),
+      };
     },
   });
 }
@@ -212,7 +362,15 @@ const TextColor = styleMark('textColor', 'color', 'color');
 const TextHighlight = styleMark('textHighlight', 'backgroundColor', 'background-color');
 
 function HighlightedCode({ language, children }) {
-  return <code className={language ? `language-${normalizeLanguage(language)}` : ''}>{codeTokens(String(children).replace(/\n$/, ''), language).map((token, i) => <span className={token.type ? `tok-${token.type}` : undefined} key={i}>{token.text}</span>)}</code>;
+  return (
+    <code className={language ? `language-${normalizeLanguage(language)}` : ''}>
+      {codeTokens(String(children).replace(/\n$/, ''), language).map((token, i) => (
+        <span className={token.type ? `tok-${token.type}` : undefined} key={i}>
+          {token.text}
+        </span>
+      ))}
+    </code>
+  );
 }
 
 // ReactMarkdown intentionally ignores raw HTML. Convert only the two safe span
@@ -223,9 +381,14 @@ function rehypeEditorStyles() {
       if (!node.children) return;
       for (let i = 0; i < node.children.length; i++) {
         const raw = node.children[i];
-        const match = raw.type === 'raw' && raw.value.match(/^<span style="(color|background-color):\s*([^";]+)">$/i);
+        const match =
+          raw.type === 'raw' &&
+          raw.value.match(/^<span style="(color|background-color):\s*([^";]+)">$/i);
         if (!match) continue;
-        const end = node.children.findIndex((child, index) => index > i && child.type === 'raw' && child.value === '</span>');
+        const end = node.children.findIndex(
+          (child, index) =>
+            index > i && child.type === 'raw' && child.value === '</span>',
+        );
         if (end < 0) continue;
         const styledChildren = node.children.slice(i + 1, end);
         node.children.splice(i, end - i + 1, {
@@ -316,12 +479,59 @@ function Tree({ items, onOpen, editor, onMoveFolder, onDeleteFolder, onShareFold
             <ChevronRight className="folderChevron" size={14} />
             <Folder className="folderIcon" size={16} />
             <span>{x.name}</span>
-            {editor && <button className="treeAction" type="button" title="Поделиться папкой" aria-label={'Поделиться папкой «' + x.name + '»'} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onShareFolder(x); }}><Share2 size={14} /></button>}
-            {editor && <button className="treeAction" type="button" title="Переместить папку" onClick={(e) => { e.preventDefault(); onMoveFolder(x); }}><MoveRight size={14} /></button>}
-            {editor && <button className="treeAction" type="button" title="Удалить папку" aria-label={'Удалить папку «' + x.name + '»'} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDeleteFolder(x); }}><Trash2 size={14} /></button>}
+            {editor && (
+              <button
+                className="treeAction"
+                type="button"
+                title="Поделиться папкой"
+                aria-label={'Поделиться папкой «' + x.name + '»'}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onShareFolder(x);
+                }}
+              >
+                <Share2 size={14} />
+              </button>
+            )}
+            {editor && (
+              <button
+                className="treeAction"
+                type="button"
+                title="Переместить папку"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onMoveFolder(x);
+                }}
+              >
+                <MoveRight size={14} />
+              </button>
+            )}
+            {editor && (
+              <button
+                className="treeAction"
+                type="button"
+                title="Удалить папку"
+                aria-label={'Удалить папку «' + x.name + '»'}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onDeleteFolder(x);
+                }}
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
           </summary>
           <div className="nest">
-            <Tree items={x.children} onOpen={onOpen} editor={editor} onMoveFolder={onMoveFolder} onDeleteFolder={onDeleteFolder} onShareFolder={onShareFolder} />
+            <Tree
+              items={x.children}
+              onOpen={onOpen}
+              editor={editor}
+              onMoveFolder={onMoveFolder}
+              onDeleteFolder={onDeleteFolder}
+              onShareFolder={onShareFolder}
+            />
           </div>
         </details>
       ) : (
@@ -335,134 +545,75 @@ function Tree({ items, onOpen, editor, onMoveFolder, onDeleteFolder, onShareFold
 }
 
 function folderOptions(items, depth = 0) {
-  return items.flatMap((item) => item.type === 'folder'
-    ? [{ path: item.path, label: `${'— '.repeat(depth)}${item.name}` }, ...folderOptions(item.children, depth + 1)]
-    : []);
+  return items.flatMap((item) =>
+    item.type === 'folder'
+      ? [
+          { path: item.path, label: `${'— '.repeat(depth)}${item.name}` },
+          ...folderOptions(item.children, depth + 1),
+        ]
+      : [],
+  );
 }
 
-function FolderDialog({ title, folders, initialFolder = '', nameLabel, onClose, onSubmit }) {
+function FolderDialog({
+  title,
+  folders,
+  initialFolder = '',
+  nameLabel,
+  onClose,
+  onSubmit,
+}) {
   const [folder, setFolder] = useState(initialFolder);
   const [name, setName] = useState('');
 
   return (
     <div className="dialogBackdrop" onMouseDown={onClose}>
-      <form className="folderDialog" onMouseDown={(e) => e.stopPropagation()} onSubmit={(e) => { e.preventDefault(); onSubmit({ folder, name: name.trim() }); }}>
-        <div className="dialogHead"><h2>{title}</h2><button type="button" className="iconBtn" onClick={onClose}><X size={18} /></button></div>
-        {nameLabel && <label>{nameLabel}<input autoFocus required value={name} onChange={(e) => setName(e.target.value)} /></label>}
-        <label>Папка<select value={folder} onChange={(e) => setFolder(e.target.value)}><option value="">Корень</option>{folderOptions(folders).map((x) => <option key={x.path} value={x.path}>{x.label}</option>)}</select></label>
-        <div className="dialogActions"><button type="button" onClick={onClose}>Отмена</button><button className="primary" type="submit">Готово</button></div>
+      <form
+        className="folderDialog"
+        onMouseDown={(e) => e.stopPropagation()}
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit({ folder, name: name.trim() });
+        }}
+      >
+        <div className="dialogHead">
+          <h2>{title}</h2>
+          <button type="button" className="iconBtn" onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
+        {nameLabel && (
+          <label>
+            {nameLabel}
+            <input
+              autoFocus
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </label>
+        )}
+        <label>
+          Папка
+          <select value={folder} onChange={(e) => setFolder(e.target.value)}>
+            <option value="">Корень</option>
+            {folderOptions(folders).map((x) => (
+              <option key={x.path} value={x.path}>
+                {x.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="dialogActions">
+          <button type="button" onClick={onClose}>
+            Отмена
+          </button>
+          <button className="primary" type="submit">
+            Готово
+          </button>
+        </div>
       </form>
     </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Markdown <-> block conversion                                      */
-/* ------------------------------------------------------------------ */
-
-function mdToBlocks(md = '') {
-  let lines = md.replace(/\r/g, '').split('\n');
-  let out = [];
-  let para = [];
-
-  const flush = () => {
-    if (para.length) {
-      out.push({ type: 'p', text: para.join('\n') });
-      para = [];
-    }
-  };
-
-  for (let i = 0; i < lines.length; i++) {
-    let l = lines[i];
-
-    if (l.startsWith('```')) {
-      flush();
-      let lang = l.slice(3);
-      let buf = [];
-      while (++i < lines.length && !lines[i].startsWith('```')) buf.push(lines[i]);
-      out.push({ type: 'code', text: buf.join('\n'), lang });
-      continue;
-    }
-
-    if (/^#{1,3} /.test(l)) {
-      flush();
-      let m = l.match(/^(#{1,3}) (.*)$/);
-      out.push({ type: 'h' + m[1].length, text: m[2] });
-      continue;
-    }
-
-    if (/^> /.test(l)) {
-      flush();
-      out.push({ type: 'quote', text: l.slice(2) });
-      continue;
-    }
-
-    if (/^[-*] /.test(l)) {
-      flush();
-      out.push({ type: 'bullet', text: l.slice(2) });
-      continue;
-    }
-
-    if (/^\d+\. /.test(l)) {
-      flush();
-      out.push({ type: 'number', text: l.replace(/^\d+\. /, '') });
-      continue;
-    }
-
-    if (/^!\[.*?\]\(.+\)$/.test(l)) {
-      flush();
-      let m = l.match(/^!\[(.*?)\]\((.+)\)$/);
-      out.push({ type: 'image', text: m[1], url: m[2] });
-      continue;
-    }
-
-    if (
-      l.includes('|') &&
-      i + 1 < lines.length &&
-      /^\s*\|?\s*:?-+/.test(lines[i + 1])
-    ) {
-      flush();
-      let buf = [l, lines[++i]];
-      while (i + 1 < lines.length && lines[i + 1].includes('|')) buf.push(lines[++i]);
-      out.push({ type: 'table', text: buf.join('\n') });
-      continue;
-    }
-
-    if (!l.trim()) {
-      flush();
-    } else {
-      para.push(l);
-    }
-  }
-
-  flush();
-  return out.length ? out : [{ type: 'p', text: '' }];
-}
-
-function blocksToMd(bs) {
-  return (
-    bs
-      .map((b) => {
-        let p =
-          b.type === 'h1'
-            ? '# '
-            : b.type === 'h2'
-            ? '## '
-            : b.type === 'h3'
-            ? '### '
-            : b.type === 'quote'
-            ? '> '
-            : b.type === 'bullet'
-            ? '- '
-            : b.type === 'number'
-            ? '1. '
-            : '';
-
-        if (b.type === 'code') return '```' + (b.lang || '') + '\n' + b.text + '\n```';
-        if (b.type === 'image') return `![${b.text || ''}](${b.url || ''})`;
-        return p + b.text;
-      })
-      .join('\n\n') + '\n'
   );
 }
 
@@ -490,12 +641,14 @@ turndown.addRule('tiptapImage', {
 
 turndown.addRule('textColour', {
   filter: (node) => node.nodeName === 'SPAN' && !!node.style.color,
-  replacement: (content, node) => `<span style="color: ${node.style.color}">${content}</span>`,
+  replacement: (content, node) =>
+    `<span style="color: ${node.style.color}">${content}</span>`,
 });
 
 turndown.addRule('textHighlight', {
   filter: (node) => node.nodeName === 'SPAN' && !!node.style.backgroundColor,
-  replacement: (content, node) => `<span style="background-color: ${node.style.backgroundColor}">${content}</span>`,
+  replacement: (content, node) =>
+    `<span style="background-color: ${node.style.backgroundColor}">${content}</span>`,
 });
 
 /* ------------------------------------------------------------------ */
@@ -526,16 +679,16 @@ function RichEditor({ note, setNote, upload }) {
       attributes: { class: 'tiptapEditor' },
       handlePaste(view, event) {
         const f = [...(event.clipboardData?.files || [])].find((x) =>
-          x.type.startsWith('image/')
+          x.type.startsWith('image/'),
         );
         if (!f) return false;
         event.preventDefault();
         upload(f, false).then((x) =>
           view.dispatch(
             view.state.tr.replaceSelectionWith(
-              view.state.schema.nodes.image.create({ src: x.url, alt: f.name })
-            )
-          )
+              view.state.schema.nodes.image.create({ src: x.url, alt: f.name }),
+            ),
+          ),
         );
         return true;
       },
@@ -554,7 +707,11 @@ function RichEditor({ note, setNote, upload }) {
   const cmd = (fn) => {
     const { from } = editor.state.selection;
     if (editor.state.doc.textBetween(Math.max(0, from - 1), from) === '/') {
-      editor.chain().focus().deleteRange({ from: from - 1, to: from }).run();
+      editor
+        .chain()
+        .focus()
+        .deleteRange({ from: from - 1, to: from })
+        .run();
     }
     fn(editor);
     setSlash(false);
@@ -570,7 +727,9 @@ function RichEditor({ note, setNote, upload }) {
     editor.chain().focus().setImage({ src: x.url, alt: f.name }).run();
   };
 
-  const codeLanguage = normalizeLanguage(editor.getAttributes('codeBlock').language || '');
+  const codeLanguage = normalizeLanguage(
+    editor.getAttributes('codeBlock').language || '',
+  );
 
   return (
     <div className="richEditor">
@@ -600,12 +759,30 @@ function RichEditor({ note, setNote, upload }) {
           <u>U</u>
         </button>
         <span></span>
-        <button onClick={() => editor.chain().focus().setParagraph().run()}>Text</button>
-        <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}>H1</button>
-        <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>H2</button>
-        <button onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>H3</button>
-        <button onClick={() => editor.chain().focus().toggleBulletList().run()}>• List</button>
-        <button onClick={() => editor.chain().focus().toggleOrderedList().run()}>1. List</button>
+        <button onClick={() => editor.chain().focus().setParagraph().run()}>
+          Text
+        </button>
+        <button
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+        >
+          H1
+        </button>
+        <button
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+        >
+          H2
+        </button>
+        <button
+          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+        >
+          H3
+        </button>
+        <button onClick={() => editor.chain().focus().toggleBulletList().run()}>
+          • List
+        </button>
+        <button onClick={() => editor.chain().focus().toggleOrderedList().run()}>
+          1. List
+        </button>
         <button
           className={editor.isActive('codeBlock') ? 'active' : ''}
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
@@ -618,21 +795,61 @@ function RichEditor({ note, setNote, upload }) {
           <select
             value={codeLanguage}
             disabled={!editor.isActive('codeBlock')}
-            onChange={(e) => editor.chain().focus().updateAttributes('codeBlock', { language: e.target.value }).run()}
+            onChange={(e) =>
+              editor
+                .chain()
+                .focus()
+                .updateAttributes('codeBlock', { language: e.target.value })
+                .run()
+            }
           >
-            {CODE_LANGUAGES.map(([label, value]) => <option value={value} key={value}>{label}</option>)}
+            {CODE_LANGUAGES.map(([label, value]) => (
+              <option value={value} key={value}>
+                {label}
+              </option>
+            ))}
           </select>
         </label>
         <label className="colorTool" title="Text colour">
           <span>A</span>
-          <input type="color" defaultValue="#2563eb" onInput={(e) => editor.chain().focus().setTextColor({ color: e.currentTarget.value }).run()} />
+          <input
+            type="color"
+            defaultValue="#2563eb"
+            onInput={(e) =>
+              editor
+                .chain()
+                .focus()
+                .setTextColor({ color: e.currentTarget.value })
+                .run()
+            }
+          />
         </label>
-        <button onClick={() => editor.chain().focus().unsetTextColor().run()} title="Remove text colour">A×</button>
+        <button
+          onClick={() => editor.chain().focus().unsetTextColor().run()}
+          title="Remove text colour"
+        >
+          A×
+        </button>
         <label className="colorTool highlightTool" title="Highlight colour">
           <span>▰</span>
-          <input type="color" defaultValue="#fde68a" onInput={(e) => editor.chain().focus().setTextHighlight({ color: e.currentTarget.value }).run()} />
+          <input
+            type="color"
+            defaultValue="#fde68a"
+            onInput={(e) =>
+              editor
+                .chain()
+                .focus()
+                .setTextHighlight({ color: e.currentTarget.value })
+                .run()
+            }
+          />
         </label>
-        <button onClick={() => editor.chain().focus().unsetTextHighlight().run()} title="Remove highlight">▰×</button>
+        <button
+          onClick={() => editor.chain().focus().unsetTextHighlight().run()}
+          title="Remove highlight"
+        >
+          ▰×
+        </button>
         <button onClick={addLink}>Link</button>
         <button onClick={() => fileRef.current?.click()}>Image</button>
         <button onClick={() => editor.chain().focus().undo().run()}>↶</button>
@@ -670,7 +887,11 @@ function RichEditor({ note, setNote, upload }) {
                 e.preventDefault();
                 let { from } = editor.state.selection;
                 if (editor.state.doc.textBetween(Math.max(0, from - 1), from) === '/') {
-                  editor.chain().focus().deleteRange({ from: from - 1, to: from }).run();
+                  editor
+                    .chain()
+                    .focus()
+                    .deleteRange({ from: from - 1, to: from })
+                    .run();
                 }
                 fileRef.current?.click();
                 setSlash(false);
@@ -719,7 +940,9 @@ function CoverPicker({ note, setNote }) {
           <input
             placeholder="Or image URL"
             value={
-              note.meta.cover?.startsWith('linear-gradient') ? '' : note.meta.cover || ''
+              note.meta.cover?.startsWith('linear-gradient')
+                ? ''
+                : note.meta.cover || ''
             }
             onChange={(e) =>
               setNote({ ...note, meta: { ...note.meta, cover: e.target.value } })
@@ -780,41 +1003,105 @@ function ShareDialog({ note, onClose }) {
   const [message, setMessage] = useState('');
   const endpoint = '/shares?path=' + encodeURIComponent(note.path);
   useEffect(() => {
-    api(endpoint).then((x) => setLinks(x.links)).catch((e) => setMessage(e.message)).finally(() => setBusy(false));
+    api(endpoint)
+      .then((x) => setLinks(x.links))
+      .catch((e) => setMessage(e.message))
+      .finally(() => setBusy(false));
   }, [endpoint]);
   const change = async (mode, method) => {
-    if (links[mode] && !confirm(method === 'DELETE' ? 'Отключить доступ по этой ссылке?' : 'Старая ссылка перестанет работать. Сбросить её?')) return;
-    setBusy(true); setMessage('');
-    try { const x = await api(endpoint, { method, body: JSON.stringify({ mode }) }); setLinks(x.links); }
-    catch (e) { setMessage(e.message); }
-    finally { setBusy(false); }
+    if (
+      links[mode] &&
+      !confirm(
+        method === 'DELETE'
+          ? 'Отключить доступ по этой ссылке?'
+          : 'Старая ссылка перестанет работать. Сбросить её?',
+      )
+    )
+      return;
+    setBusy(true);
+    setMessage('');
+    try {
+      const x = await api(endpoint, { method, body: JSON.stringify({ mode }) });
+      setLinks(x.links);
+    } catch (e) {
+      setMessage(e.message);
+    } finally {
+      setBusy(false);
+    }
   };
   const url = (token) => location.origin + '/notes#share=' + token;
   const copy = async (token) => {
-    try { await navigator.clipboard.writeText(url(token)); setMessage('Ссылка скопирована'); }
-    catch { setMessage('Выделите ссылку и скопируйте её вручную.'); }
+    try {
+      await navigator.clipboard.writeText(url(token));
+      setMessage('Ссылка скопирована');
+    } catch {
+      setMessage('Выделите ссылку и скопируйте её вручную.');
+    }
   };
-  return <div className="trashBackdrop" onMouseDown={onClose}>
-    <div className="trashModal shareModal" role="dialog" aria-modal="true" aria-label={note.type === 'folder' ? 'Поделиться папкой' : 'Поделиться статьёй'} onMouseDown={(e) => e.stopPropagation()}>
-      <div className="trashHead"><div><h2>Поделиться</h2><p>{note.meta?.title || note.name}</p></div><button aria-label="Закрыть" onClick={onClose}>×</button></div>
-      {['view', 'edit'].map((mode) => <section className="shareRow" key={mode}>
-        <h3>{mode === 'view' ? 'Зритель' : 'Редактор'}</h3>
-        {links[mode] ? <><input aria-label={'Ссылка: ' + mode} readOnly value={url(links[mode])} onFocus={(e) => e.target.select()} />
-          <div className="shareActions"><button disabled={busy} onClick={() => copy(links[mode])}>Копировать</button><button disabled={busy} onClick={() => change(mode, 'POST')}>Сбросить</button><button disabled={busy} onClick={() => change(mode, 'DELETE')}>Отключить</button></div></>
-          : <button disabled={busy} onClick={() => change(mode, 'POST')}>Создать ссылку</button>}
-      </section>)}
-      {message && <p role="status">{message}</p>}
+  return (
+    <div className="trashBackdrop" onMouseDown={onClose}>
+      <div
+        className="trashModal shareModal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={note.type === 'folder' ? 'Поделиться папкой' : 'Поделиться статьёй'}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="trashHead">
+          <div>
+            <h2>Поделиться</h2>
+            <p>{note.meta?.title || note.name}</p>
+          </div>
+          <button aria-label="Закрыть" onClick={onClose}>
+            ×
+          </button>
+        </div>
+        {['view', 'edit'].map((mode) => (
+          <section className="shareRow" key={mode}>
+            <h3>{mode === 'view' ? 'Зритель' : 'Редактор'}</h3>
+            {links[mode] ? (
+              <>
+                <input
+                  aria-label={'Ссылка: ' + mode}
+                  readOnly
+                  value={url(links[mode])}
+                  onFocus={(e) => e.target.select()}
+                />
+                <div className="shareActions">
+                  <button disabled={busy} onClick={() => copy(links[mode])}>
+                    Копировать
+                  </button>
+                  <button disabled={busy} onClick={() => change(mode, 'POST')}>
+                    Сбросить
+                  </button>
+                  <button disabled={busy} onClick={() => change(mode, 'DELETE')}>
+                    Отключить
+                  </button>
+                </div>
+              </>
+            ) : (
+              <button disabled={busy} onClick={() => change(mode, 'POST')}>
+                Создать ссылку
+              </button>
+            )}
+          </section>
+        ))}
+        {message && <p role="status">{message}</p>}
+      </div>
     </div>
-  </div>;
+  );
 }
 
 function Notes() {
   const [tree, setTree] = useState([]);
   const [note, setNote] = useState(null);
   const [role, setRole] = useState('visitor');
-  const [shareToken, setShareToken] = useState(() => new URLSearchParams(location.hash.slice(1)).get('share'));
+  const [shareToken, setShareToken] = useState(() =>
+    new URLSearchParams(location.hash.slice(1)).get('share'),
+  );
   useEffect(() => {
-    const changed = () => setShareToken(new URLSearchParams(location.hash.slice(1)).get('share'));
+    const changed = () =>
+      setShareToken(new URLSearchParams(location.hash.slice(1)).get('share'));
     window.addEventListener('hashchange', changed);
     return () => window.removeEventListener('hashchange', changed);
   }, []);
@@ -830,49 +1117,80 @@ function Notes() {
   const [trashOpen, setTrashOpen] = useState(false);
   const [trash, setTrash] = useState([]);
   const [dialog, setDialog] = useState(null);
-  const [sidebarWidth, setSidebarWidth] = useState(() => Number(localStorage.sidebarWidth) || 270);
+  const [sidebarWidth, setSidebarWidth] = useState(
+    () => Number(localStorage.sidebarWidth) || 270,
+  );
 
   let loadTree = () => {
     if (!shared) return api('/tree').then(setTree);
     if (!sharedFolder) return Promise.resolve();
-    return api('/shared/' + encodeURIComponent(shareToken)).then((folder) => { setSharedFolder(folder); setTree(folder.tree); });
+    return api('/shared/' + encodeURIComponent(shareToken)).then((folder) => {
+      setSharedFolder(folder);
+      setTree(folder.tree);
+    });
   };
 
   let open = (p) =>
-    api((shared ? '/shared/' + encodeURIComponent(shareToken) + '?path=' : '/note?path=') + encodeURIComponent(p)).then((n) => {
+    api(
+      (shared
+        ? '/shared/' + encodeURIComponent(shareToken) + '?path='
+        : '/note?path=') + encodeURIComponent(p),
+    ).then((n) => {
       setNote(n);
       setEdit(false);
       setSide(false);
     });
 
   useEffect(() => {
-    setNote(null); setEdit(false); setSharing(false); setLoadError(''); setTree([]); setSharedFolder(null);
-    if (shared) {
+    setNote(null);
+    setEdit(false);
+    setSharing(false);
+    setLoadError('');
+    setTree([]);
+    setSharedFolder(null);
+    if (shareToken) {
       let active = true;
       api('/shared/' + encodeURIComponent(shareToken))
         .then((n) => {
           if (!active) return;
-          if (n.type === 'folder') { setSharedFolder(n); setTree(n.tree); }
-          else setNote(n);
+          if (n.type === 'folder') {
+            setSharedFolder(n);
+            setTree(n.tree);
+          } else setNote(n);
         })
-        .catch((e) => { if (active) setLoadError(e.message); });
-      return () => { active = false; };
+        .catch((e) => {
+          if (active) setLoadError(e.message);
+        });
+      return () => {
+        active = false;
+      };
     }
     api('/me').then((x) => setRole(x.role));
-    loadTree();
+    api('/tree').then(setTree);
 
     api('/start')
       .then((x) => {
-        if (x.path) open(x.path);
+        if (x.path) {
+          return api('/note?path=' + encodeURIComponent(x.path)).then((n) => {
+            setNote(n);
+            setEdit(false);
+            setSide(false);
+          });
+        }
       })
       .catch(() => {});
   }, [shareToken]);
 
   let save = () =>
-    api(shared ? '/shared/' + encodeURIComponent(shareToken) : '/note', { method: 'PUT', body: JSON.stringify(note) }).then(() => {
-      setEdit(false);
-      return loadTree();
-    }).catch((e) => alert(e.message));
+    api(shared ? '/shared/' + encodeURIComponent(shareToken) : '/note', {
+      method: 'PUT',
+      body: JSON.stringify(note),
+    })
+      .then(() => {
+        setEdit(false);
+        return loadTree();
+      })
+      .catch((e) => alert(e.message));
 
   let remove = async () => {
     if (!note) return;
@@ -894,12 +1212,21 @@ function Notes() {
   };
 
   const removeFolder = async (folder) => {
-    if (!confirm(`Переместить папку «${folder.name}» и всё её содержимое в корзину?`)) return;
+    if (!confirm(`Переместить папку «${folder.name}» и всё её содержимое в корзину?`))
+      return;
     try {
-      await api('/folder?path=' + encodeURIComponent(folder.path), { method: 'DELETE' });
-      if (note?.path.startsWith(folder.path + '/')) { setNote(null); setEdit(false); setSharing(false); }
+      await api('/folder?path=' + encodeURIComponent(folder.path), {
+        method: 'DELETE',
+      });
+      if (note?.path.startsWith(folder.path + '/')) {
+        setNote(null);
+        setEdit(false);
+        setSharing(false);
+      }
       await loadTree();
-    } catch (e) { alert(e.message); }
+    } catch (e) {
+      alert(e.message);
+    }
   };
 
   let loadTrash = () => api('/trash').then(setTrash);
@@ -927,7 +1254,7 @@ function Notes() {
   let deleteForever = async (item) => {
     if (
       !confirm(
-        `Удалить «${item.title}» навсегда?\n\nВосстановить страницу после этого будет нельзя.`
+        `Удалить «${item.title}» навсегда?\n\nВосстановить страницу после этого будет нельзя.`,
       )
     ) {
       return;
@@ -942,29 +1269,46 @@ function Notes() {
 
   let create = ({ name, folder }) => {
     if (name) {
-      api('/note', { method: 'POST', body: JSON.stringify({ title: name, folder }) }).then((x) => {
-        setDialog(null);
-        loadTree();
-        open(x.path).then?.(() => setEdit(true));
-        setTimeout(() => setEdit(true), 150);
-      }).catch((e) => alert(e.message));
+      api('/note', { method: 'POST', body: JSON.stringify({ title: name, folder }) })
+        .then((x) => {
+          setDialog(null);
+          loadTree();
+          open(x.path).then?.(() => setEdit(true));
+          setTimeout(() => setEdit(true), 150);
+        })
+        .catch((e) => alert(e.message));
     }
   };
 
   let createFolder = ({ name, folder }) => {
     const path = [folder, name].filter(Boolean).join('/');
     api('/folder', { method: 'POST', body: JSON.stringify({ path }) })
-      .then(() => { setDialog(null); loadTree(); })
+      .then(() => {
+        setDialog(null);
+        loadTree();
+      })
       .catch((e) => alert(e.message));
   };
 
-  let move = (item, type) => setDialog({
-    title: `Переместить «${item.name || item.meta?.title || 'страницу'}»`,
-    initialFolder: type === 'note' ? item.path.split('/').slice(0, -1).join('/') : item.path.split('/').slice(0, -1).join('/'),
-    submit: ({ folder }) => api('/move', { method: 'POST', body: JSON.stringify({ path: item.path, folder, type }) })
-      .then((x) => { setDialog(null); loadTree(); if (type === 'note') open(x.path); })
-      .catch((e) => alert(e.message)),
-  });
+  let move = (item, type) =>
+    setDialog({
+      title: `Переместить «${item.name || item.meta?.title || 'страницу'}»`,
+      initialFolder:
+        type === 'note'
+          ? item.path.split('/').slice(0, -1).join('/')
+          : item.path.split('/').slice(0, -1).join('/'),
+      submit: ({ folder }) =>
+        api('/move', {
+          method: 'POST',
+          body: JSON.stringify({ path: item.path, folder, type }),
+        })
+          .then((x) => {
+            setDialog(null);
+            loadTree();
+            if (type === 'note') open(x.path);
+          })
+          .catch((e) => alert(e.message)),
+    });
 
   let startResize = (event) => {
     event.preventDefault();
@@ -983,7 +1327,10 @@ function Notes() {
   let upload = async (f, append = true) => {
     let fd = new FormData();
     fd.append('file', f);
-    let x = await api(shared ? '/shared/' + encodeURIComponent(shareToken) + '/upload' : '/upload', { method: 'POST', body: fd });
+    let x = await api(
+      shared ? '/shared/' + encodeURIComponent(shareToken) + '/upload' : '/upload',
+      { method: 'POST', body: fd },
+    );
     if (append) {
       setNote((n) => ({ ...n, content: n.content + `\n![${f.name}](${x.url})\n` }));
     }
@@ -1010,18 +1357,39 @@ function Notes() {
 
         {member && (
           <div className="tools">
-            <button onClick={() => setDialog({ title: 'Новая страница', nameLabel: 'Название', submit: create })}>
+            <button
+              onClick={() =>
+                setDialog({
+                  title: 'Новая страница',
+                  nameLabel: 'Название',
+                  submit: create,
+                })
+              }
+            >
               <Plus size={16} /> Page
             </button>
             <button
-              onClick={() => setDialog({ title: 'Новая папка', nameLabel: 'Название', submit: createFolder })}
+              onClick={() =>
+                setDialog({
+                  title: 'Новая папка',
+                  nameLabel: 'Название',
+                  submit: createFolder,
+                })
+              }
             >
               <FolderPlus size={16} />
             </button>
           </div>
         )}
 
-        <Tree items={tree} onOpen={open} editor={member} onMoveFolder={(folder) => move(folder, 'folder')} onDeleteFolder={removeFolder} onShareFolder={setSharing} />
+        <Tree
+          items={tree}
+          onOpen={open}
+          editor={member}
+          onMoveFolder={(folder) => move(folder, 'folder')}
+          onDeleteFolder={removeFolder}
+          onShareFolder={setSharing}
+        />
 
         <div className="sideBottom">
           {member && (
@@ -1040,7 +1408,11 @@ function Notes() {
             </button>
           ) : null}
         </div>
-        <div className="sidebarResize" onMouseDown={startResize} title="Изменить ширину панели" />
+        <div
+          className="sidebarResize"
+          onMouseDown={startResize}
+          title="Изменить ширину панели"
+        />
       </aside>
 
       {side && (
@@ -1066,7 +1438,9 @@ function Notes() {
                 {edit ? (
                   <EmojiPicker
                     value={note.meta.emoji}
-                    onChange={(emoji) => setNote({ ...note, meta: { ...note.meta, emoji } })}
+                    onChange={(emoji) =>
+                      setNote({ ...note, meta: { ...note.meta, emoji } })
+                    }
                   />
                 ) : (
                   <div className="emoji">{note.meta.emoji || '📄'}</div>
@@ -1076,7 +1450,9 @@ function Notes() {
 
               {editor && (
                 <div className="adminbar">
-                  <button onClick={() => setEdit(!edit)}>{edit ? 'Done' : 'Edit'}</button>
+                  <button onClick={() => setEdit(!edit)}>
+                    {edit ? 'Done' : 'Edit'}
+                  </button>
 
                   {edit && (
                     <button className="save" onClick={save}>
@@ -1084,63 +1460,75 @@ function Notes() {
                     </button>
                   )}
 
-                  {member && <>
-                  <button className="shareButton" aria-label="Поделиться" title="Поделиться" onClick={() => setSharing(note)}><Share2 size={18} /></button>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={!!note.meta.published}
-                      onChange={(e) =>
-                        setNote({
-                          ...note,
-                          meta: { ...note.meta, published: e.target.checked },
-                        })
-                      }
-                    />{' '}
-                    Published
-                  </label>
+                  {member && (
+                    <>
+                      <button
+                        className="shareButton"
+                        aria-label="Поделиться"
+                        title="Поделиться"
+                        onClick={() => setSharing(note)}
+                      >
+                        <Share2 size={18} />
+                      </button>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={!!note.meta.published}
+                          onChange={(e) =>
+                            setNote({
+                              ...note,
+                              meta: { ...note.meta, published: e.target.checked },
+                            })
+                          }
+                        />{' '}
+                        Published
+                      </label>
 
-                  {admin && (
-                    <label title="Личные страницы видны только администратору">
-                      <input
-                        type="checkbox"
-                        checked={!!note.meta.private}
-                        onChange={(e) =>
-                          setNote({
-                            ...note,
-                            meta: { ...note.meta, private: e.target.checked },
-                          })
-                        }
-                      />{' '}
-                      Личная
-                    </label>
+                      {admin && (
+                        <label title="Личные страницы видны только администратору">
+                          <input
+                            type="checkbox"
+                            checked={!!note.meta.private}
+                            onChange={(e) =>
+                              setNote({
+                                ...note,
+                                meta: { ...note.meta, private: e.target.checked },
+                              })
+                            }
+                          />{' '}
+                          Личная
+                        </label>
+                      )}
+
+                      <label title="Эта страница откроется первой при переходе в заметки">
+                        <input
+                          type="checkbox"
+                          checked={!!note.meta.start_page}
+                          onChange={(e) =>
+                            setNote({
+                              ...note,
+                              meta: { ...note.meta, start_page: e.target.checked },
+                            })
+                          }
+                        />{' '}
+                        Начальная страница
+                      </label>
+
+                      <button
+                        className="deleteNote"
+                        onClick={remove}
+                        title="Удалить страницу"
+                      >
+                        <Trash2 size={15} /> Удалить
+                      </button>
+                      <button
+                        onClick={() => move(note, 'note')}
+                        title="Переместить страницу"
+                      >
+                        <MoveRight size={15} /> Переместить
+                      </button>
+                    </>
                   )}
-
-                  <label title="Эта страница откроется первой при переходе в заметки">
-                    <input
-                      type="checkbox"
-                      checked={!!note.meta.start_page}
-                      onChange={(e) =>
-                        setNote({
-                          ...note,
-                          meta: { ...note.meta, start_page: e.target.checked },
-                        })
-                      }
-                    />{' '}
-                    Начальная страница
-                  </label>
-
-                  <button
-                    className="deleteNote"
-                    onClick={remove}
-                    title="Удалить страницу"
-                  >
-                    <Trash2 size={15} /> Удалить
-                  </button>
-                  <button onClick={() => move(note, 'note')} title="Переместить страницу">
-                    <MoveRight size={15} /> Переместить
-                  </button>
-                  </>}
                 </div>
               )}
 
@@ -1150,7 +1538,10 @@ function Notes() {
                     className="titleInput"
                     value={note.meta.title || ''}
                     onChange={(e) =>
-                      setNote({ ...note, meta: { ...note.meta, title: e.target.value } })
+                      setNote({
+                        ...note,
+                        meta: { ...note.meta, title: e.target.value },
+                      })
                     }
                   />
                   <RichEditor
@@ -1171,7 +1562,11 @@ function Notes() {
                         <LinkCard href={href}>{children}</LinkCard>
                       ),
                       code: ({ className = '', children }) => (
-                        <HighlightedCode language={className.match(/language-([\w#+-]+)/)?.[1] || ''}>{children}</HighlightedCode>
+                        <HighlightedCode
+                          language={className.match(/language-([\w#+-]+)/)?.[1] || ''}
+                        >
+                          {children}
+                        </HighlightedCode>
                       ),
                     }}
                   >
@@ -1184,13 +1579,26 @@ function Notes() {
         ) : (
           <div className="empty">
             <span>👋</span>
-            <h1>{loadError ? 'Доступ недоступен' : (sharedFolder?.name || 'Notes')}</h1>
-            <p>{loadError || (sharedFolder ? 'Выберите статью в меню.' : shared ? 'Загрузка…' : 'Choose a page from the sidebar.')}</p>
+            <h1>{loadError ? 'Доступ недоступен' : sharedFolder?.name || 'Notes'}</h1>
+            <p>
+              {loadError ||
+                (sharedFolder
+                  ? 'Выберите статью в меню.'
+                  : shared
+                    ? 'Загрузка…'
+                    : 'Choose a page from the sidebar.')}
+            </p>
           </div>
         )}
       </main>
 
-      {sharing && <ShareDialog key={sharing.path} note={sharing} onClose={() => setSharing(false)} />}
+      {sharing && (
+        <ShareDialog
+          key={sharing.path}
+          note={sharing}
+          onClose={() => setSharing(false)}
+        />
+      )}
       {trashOpen && (
         <div className="trashBackdrop" onMouseDown={() => setTrashOpen(false)}>
           <div className="trashModal" onMouseDown={(e) => e.stopPropagation()}>
@@ -1236,7 +1644,16 @@ function Notes() {
           </div>
         </div>
       )}
-      {dialog && <FolderDialog title={dialog.title} folders={tree} initialFolder={dialog.initialFolder} nameLabel={dialog.nameLabel} onClose={() => setDialog(null)} onSubmit={dialog.submit} />}
+      {dialog && (
+        <FolderDialog
+          title={dialog.title}
+          folders={tree}
+          initialFolder={dialog.initialFolder}
+          nameLabel={dialog.nameLabel}
+          onClose={() => setDialog(null)}
+          onSubmit={dialog.submit}
+        />
+      )}
     </div>
   );
 }
@@ -1364,9 +1781,9 @@ function Home() {
               <span>01</span>
               <h3>Система заказа транспорта</h3>
               <p>
-                Проект создан как решение для хакатона. Его задача — управление транспортом
-                внутри строительной компании. За два дня наша команда сделала более 80
-                коммитов и вышла в финал соревнования.
+                Проект создан как решение для хакатона. Его задача — управление
+                транспортом внутри строительной компании. За два дня наша команда
+                сделала более 80 коммитов и вышла в финал соревнования.
               </p>
               <small>ASP.NET Core · EF Core · PostgreSQL · Docker</small>
               <a href="https://github.com/zemlianin/Ordering-transport">GitHub →</a>
@@ -1376,9 +1793,9 @@ function Home() {
               <span>02</span>
               <h3>Backend платформы для хакатонов</h3>
               <p>
-                Курсовой проект, выполненный в рамках обучения от Сбера: backend-платформа
-                для организации хакатонов по Data Science. В проекте более 230 коммитов, а
-                работа получила высшую оценку в университете.
+                Курсовой проект, выполненный в рамках обучения от Сбера:
+                backend-платформа для организации хакатонов по Data Science. В проекте
+                более 230 коммитов, а работа получила высшую оценку в университете.
               </p>
               <small>Django · PostgreSQL · Nginx · GitHub Actions · Docker</small>
               <a href="https://github.com/BankingBattle/BB_back">GitHub →</a>
@@ -1388,8 +1805,8 @@ function Home() {
               <span>03</span>
               <h3>Система мониторинга</h3>
               <p>
-                Система мониторинга платформы для хакатонов, отображающая более 30 метрик о
-                трафике и состоянии различных модулей приложения.
+                Система мониторинга платформы для хакатонов, отображающая более 30
+                метрик о трафике и состоянии различных модулей приложения.
               </p>
               <small>Prometheus · Grafana · Nginx</small>
               <a href="https://github.com/BankingBattle/BB_monitoring">GitHub →</a>
@@ -1417,5 +1834,5 @@ function Home() {
 let path = location.pathname;
 
 createRoot(document.getElementById('root')).render(
-  path === '/login' ? <Login /> : path.startsWith('/notes') ? <Notes /> : <Home />
+  path === '/login' ? <Login /> : path.startsWith('/notes') ? <Notes /> : <Home />,
 );
