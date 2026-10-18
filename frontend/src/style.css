@@ -488,6 +488,7 @@ details[open] > summary .folderChevron {
 
 .adminbar {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
   margin: 15px 0;
@@ -495,6 +496,15 @@ details[open] > summary .folderChevron {
 
 .adminbar label {
   font-size: 13px;
+}
+
+.adminbar > button,
+.adminbar > label,
+.editorToolbar > button,
+.editorToolbar > label {
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow-wrap: normal;
 }
 
 .adminbar .save {

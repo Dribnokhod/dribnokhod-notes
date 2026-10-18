@@ -1113,6 +1113,7 @@ function Notes() {
   const [loadError, setLoadError] = useState('');
   const admin = role === 'admin';
   const [edit, setEdit] = useState(false);
+  const [savingFlag, setSavingFlag] = useState(false);
   const [side, setSide] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
   const [trash, setTrash] = useState([]);
@@ -1180,6 +1181,33 @@ function Notes() {
       })
       .catch(() => {});
   }, [shareToken]);
+
+  const saveFlag = async (field, value) => {
+    if (savingFlag) return;
+    const path = note.path;
+    setSavingFlag(true);
+    try {
+      // Save only the flag, keeping unsaved editor content in the browser.
+      const saved = await api('/note?path=' + encodeURIComponent(path));
+      await api('/note', {
+        method: 'PUT',
+        body: JSON.stringify({
+          ...saved,
+          meta: { ...saved.meta, [field]: value },
+        }),
+      });
+      setNote((current) =>
+        current?.path === path
+          ? { ...current, meta: { ...current.meta, [field]: value } }
+          : current,
+      );
+      await loadTree();
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setSavingFlag(false);
+    }
+  };
 
   let save = () =>
     api(shared ? '/shared/' + encodeURIComponent(shareToken) : '/note', {
@@ -1455,7 +1483,7 @@ function Notes() {
                   </button>
 
                   {edit && (
-                    <button className="save" onClick={save}>
+                    <button className="save" onClick={save} disabled={savingFlag}>
                       <Save size={15} /> Save
                     </button>
                   )}
@@ -1474,12 +1502,8 @@ function Notes() {
                         <input
                           type="checkbox"
                           checked={!!note.meta.published}
-                          onChange={(e) =>
-                            setNote({
-                              ...note,
-                              meta: { ...note.meta, published: e.target.checked },
-                            })
-                          }
+                          disabled={savingFlag}
+                          onChange={(e) => saveFlag('published', e.target.checked)}
                         />{' '}
                         Published
                       </label>
@@ -1489,12 +1513,8 @@ function Notes() {
                           <input
                             type="checkbox"
                             checked={!!note.meta.private}
-                            onChange={(e) =>
-                              setNote({
-                                ...note,
-                                meta: { ...note.meta, private: e.target.checked },
-                              })
-                            }
+                            disabled={savingFlag}
+                            onChange={(e) => saveFlag('private', e.target.checked)}
                           />{' '}
                           Личная
                         </label>
@@ -1504,12 +1524,8 @@ function Notes() {
                         <input
                           type="checkbox"
                           checked={!!note.meta.start_page}
-                          onChange={(e) =>
-                            setNote({
-                              ...note,
-                              meta: { ...note.meta, start_page: e.target.checked },
-                            })
-                          }
+                          disabled={savingFlag}
+                          onChange={(e) => saveFlag('start_page', e.target.checked)}
                         />{' '}
                         Начальная страница
                       </label>
