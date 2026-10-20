@@ -14,6 +14,7 @@ import { TableCell } from '@tiptap/extension-table-cell';
 import { marked } from 'marked';
 import TurndownService from 'turndown';
 import { gfm as gfmPlugin } from 'turndown-plugin-gfm';
+import { addTableMarkdownRule } from './table-markdown';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
@@ -188,12 +189,7 @@ const SLASH_COMMANDS = [
   ['Numbered list', 'number', (e) => e.chain().focus().toggleOrderedList().run()],
   ['Quote', 'quote', (e) => e.chain().focus().toggleBlockquote().run()],
   ['Code block', 'code', (e) => e.chain().focus().toggleCodeBlock().run()],
-  [
-    'Table',
-    'table',
-    (e) =>
-      e.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
-  ],
+  ['Table', 'table'],
 ];
 
 const CODE_LANGUAGES = [
@@ -632,6 +628,7 @@ const turndown = new TurndownService({
 });
 
 turndown.use(gfmPlugin);
+addTableMarkdownRule(turndown);
 
 turndown.addRule('tiptapImage', {
   filter: 'img',
@@ -657,6 +654,10 @@ turndown.addRule('textHighlight', {
 
 function RichEditor({ note, setNote, upload }) {
   const [slash, setSlash] = useState(false);
+  const [tableDialog, setTableDialog] = useState(false);
+  const [tableRows, setTableRows] = useState(3);
+  const [tableColumns, setTableColumns] = useState(3);
+  const [inTable, setInTable] = useState(false);
   const fileRef = useRef(null);
 
   const editor = useEditor({
@@ -693,7 +694,15 @@ function RichEditor({ note, setNote, upload }) {
         return true;
       },
     },
+    onCreate: ({ editor }) => {
+      // Repair previously saved HTML tables even if the user only opens and saves.
+      if (editor.getHTML().includes('<table')) {
+        setNote((n) => ({ ...n, content: turndown.turndown(editor.getHTML()) + '\n' }));
+      }
+    },
+    onSelectionUpdate: ({ editor }) => setInTable(editor.isActive('table')),
     onUpdate: ({ editor }) => {
+      setInTable(editor.isActive('table'));
       setNote((n) => ({ ...n, content: turndown.turndown(editor.getHTML()) + '\n' }));
       const { $from } = editor.state.selection;
       setSlash($from.parent.textBetween(0, $from.parentOffset, '', '').endsWith('/'));
@@ -851,10 +860,100 @@ function RichEditor({ note, setNote, upload }) {
           ▰×
         </button>
         <button onClick={addLink}>Link</button>
+        <button onClick={() => setTableDialog(true)}>Таблица</button>
+        {inTable && (
+          <>
+            <button onClick={() => editor.chain().focus().addRowBefore().run()}>
+              Строка выше
+            </button>
+            <button onClick={() => editor.chain().focus().addRowAfter().run()}>
+              Строка ниже
+            </button>
+            <button onClick={() => editor.chain().focus().deleteRow().run()}>
+              Удалить строку
+            </button>
+            <button onClick={() => editor.chain().focus().addColumnBefore().run()}>
+              Столбец слева
+            </button>
+            <button onClick={() => editor.chain().focus().addColumnAfter().run()}>
+              Столбец справа
+            </button>
+            <button onClick={() => editor.chain().focus().deleteColumn().run()}>
+              Удалить столбец
+            </button>
+            <button onClick={() => editor.chain().focus().deleteTable().run()}>
+              Удалить таблицу
+            </button>
+          </>
+        )}
         <button onClick={() => fileRef.current?.click()}>Image</button>
         <button onClick={() => editor.chain().focus().undo().run()}>↶</button>
         <button onClick={() => editor.chain().focus().redo().run()}>↷</button>
       </div>
+
+      {tableDialog && (
+        <div className="dialogBackdrop" onMouseDown={() => setTableDialog(false)}>
+          <form
+            className="folderDialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Вставить таблицу"
+            onMouseDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setTableDialog(false);
+            }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              const rows = Number(tableRows);
+              const cols = Number(tableColumns);
+              if (
+                !Number.isInteger(rows) ||
+                !Number.isInteger(cols) ||
+                rows < 1 ||
+                cols < 1
+              )
+                return;
+              editor
+                .chain()
+                .focus()
+                .insertTable({ rows, cols, withHeaderRow: true })
+                .run();
+              setTableDialog(false);
+            }}
+          >
+            <h2>Вставить таблицу</h2>
+            <label>
+              Строки (включая заголовок)
+              <input
+                autoFocus
+                type="number"
+                min="1"
+                step="1"
+                required
+                value={tableRows}
+                onChange={(e) => setTableRows(e.target.value)}
+              />
+            </label>
+            <label>
+              Столбцы
+              <input
+                type="number"
+                min="1"
+                step="1"
+                required
+                value={tableColumns}
+                onChange={(e) => setTableColumns(e.target.value)}
+              />
+            </label>
+            <div className="dialogActions">
+              <button type="button" onClick={() => setTableDialog(false)}>
+                Отмена
+              </button>
+              <button type="submit">Вставить</button>
+            </div>
+          </form>
+        </div>
+      )}
 
       <input
         ref={fileRef}
@@ -874,7 +973,7 @@ function RichEditor({ note, setNote, upload }) {
                 key={type}
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  cmd(fn);
+                  cmd(type === 'table' ? () => setTableDialog(true) : fn);
                 }}
               >
                 <b>{name}</b>

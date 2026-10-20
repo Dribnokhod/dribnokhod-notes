@@ -50,7 +50,7 @@ export default [
     },
   },
   {
-    files: ['*.config.{js,mjs,cjs}'],
+    files: ['*.config.{js,mjs,cjs}', 'tests/**/*.mjs'],
     languageOptions: { globals: globals.node },
     rules: js.configs.recommended.rules,
   },
