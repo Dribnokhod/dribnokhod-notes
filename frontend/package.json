@@ -1,10 +1,11 @@
 {
   "scripts": {
+    "test": "node --test tests/*.test.mjs",
     "build": "vite build",
     "dev": "vite",
     "lint:fix": "eslint . --fix --fix-type problem,suggestion --max-warnings 0",
-    "format:write": "prettier --write --config ../.prettierrc.json --ignore-path ../.prettierignore \"src/**/*.{js,jsx,css}\" index.html package.json eslint.config.mjs ../.prettierrc.json \"../*.{md,yml,yaml}\" \"../.agents/skills/**/*.md\"",
-    "format:check": "prettier --check --config ../.prettierrc.json --ignore-path ../.prettierignore \"src/**/*.{js,jsx,css}\" index.html package.json eslint.config.mjs ../.prettierrc.json \"../*.{md,yml,yaml}\" \"../.agents/skills/**/*.md\"",
+    "format:write": "prettier --write --config ../.prettierrc.json --ignore-path ../.prettierignore \"src/**/*.{js,jsx,css}\" \"tests/**/*.mjs\" index.html package.json eslint.config.mjs ../.prettierrc.json \"../*.{md,yml,yaml}\" \"../.agents/skills/**/*.md\"",
+    "format:check": "prettier --check --config ../.prettierrc.json --ignore-path ../.prettierignore \"src/**/*.{js,jsx,css}\" \"tests/**/*.mjs\" index.html package.json eslint.config.mjs ../.prettierrc.json \"../*.{md,yml,yaml}\" \"../.agents/skills/**/*.md\"",
     "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {

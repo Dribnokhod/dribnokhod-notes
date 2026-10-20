@@ -40,6 +40,9 @@ jobs:
         run: npm --prefix frontend ci
       - name: ESLint
         run: npm --prefix frontend run lint
+      - name: Frontend regression tests
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm --prefix frontend test
       - name: Check formatting
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm --prefix frontend run format:check
