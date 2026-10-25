@@ -167,7 +167,32 @@ const EMOJIS = [
   '🕒',
   '📅',
   '🗑️',
+  ...'😀 😃 😄 😁 😆 😅 😂 🙂 🙃 😉 😊 😍 🥰 😎 🤓 🧐 🤔 🤯 🥳 😴 🥹 😇 🤩 🤗 🤖 👻 👽 👾 🎃 😺 🙈 🙉 🙊 💡 🔬 🔭 🧪 🧬 🩺 💊 🧰 🔧 🔨 ⚙️ 🧲 📡 🔋 🔌 💻 🖥️ ⌨️ 🖱️ 💾 📷 🎬 🎨 🖌️ 🧵 🧶 📚 📖 📝 📌 📎 🗂️ 📊 📈 📉 🧮 🗺️ 🧭 🏕️ 🏖️ 🌋 🌅 🌈 ☀️ 🌙 ⭐ 🌟 🌍 🌻 🌷 🌵 🌴 🍄 🦋 🐝 🐢 🐙 🦉 🦄 🐼 🐨 🦁 🐯 🐸 🐬 🍎 🍋 🍒 🍓 🥑 🍕 🍔 🍰 🍩 ☕ 🍵 🏆 🥇 🎯 🎲 🎸 🎹 🎺 🏠 🏢 🏰 🚀 🛸 🚂 🚢 🛠️ 🔑 🔒 🛡️ 💬 💭 ❤️ 🧡 💛 💚 💙 💜 🤍 🖤'.split(
+    ' ',
+  ),
 ];
+
+const SOLID_COLORS = [
+  '#f87171',
+  '#fb923c',
+  '#fbbf24',
+  '#a3e635',
+  '#34d399',
+  '#2dd4bf',
+  '#22d3ee',
+  '#60a5fa',
+  '#818cf8',
+  '#a78bfa',
+  '#e879f9',
+  '#f472b6',
+  '#fda4af',
+  '#d6d3d1',
+  '#64748b',
+  '#292524',
+];
+
+const isCoverBackground = (cover = '') =>
+  cover?.startsWith('linear-gradient') || /^#[0-9a-f]{6}$/i.test(cover);
 
 const GRADIENTS = [
   'linear-gradient(120deg,#f6d365 0%,#fda085 100%)',
@@ -652,7 +677,66 @@ turndown.addRule('textHighlight', {
 /*  Rich editor                                                        */
 /* ------------------------------------------------------------------ */
 
+function useTableViewportWidth(rootRef) {
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const update = () => {
+      root.querySelectorAll('.tableWrapper').forEach((wrapper) => {
+        const textWidth = wrapper.parentElement.clientWidth;
+        const availableWidth = Math.max(
+          textWidth,
+          document.documentElement.clientWidth -
+            wrapper.getBoundingClientRect().left -
+            16,
+        );
+        wrapper.style.setProperty('--table-text-width', `${textWidth}px`);
+        wrapper.style.setProperty('--table-available-width', `${availableWidth}px`);
+      });
+    };
+    const resize = new ResizeObserver(update);
+    const observeTables = () => {
+      resize.disconnect();
+      resize.observe(root);
+      const page = root.closest('.page');
+      if (page) resize.observe(page);
+      root.querySelectorAll('.tableWrapper, table').forEach((element) => {
+        resize.observe(element);
+      });
+      update();
+    };
+    const mutations = new MutationObserver(observeTables);
+    mutations.observe(root, { childList: true, subtree: true, characterData: true });
+    window.addEventListener('resize', update);
+    observeTables();
+    return () => {
+      resize.disconnect();
+      mutations.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, [rootRef]);
+}
+
+function ScrollableTable({ children }) {
+  const rootRef = useRef(null);
+  useTableViewportWidth(rootRef);
+  return (
+    <div ref={rootRef} className="tableScrollRegion">
+      <div
+        className="tableWrapper"
+        tabIndex={0}
+        role="region"
+        aria-label="Scrollable table"
+      >
+        <table>{children}</table>
+      </div>
+    </div>
+  );
+}
+
 function RichEditor({ note, setNote, upload }) {
+  const rootRef = useRef(null);
+  useTableViewportWidth(rootRef);
   const [slash, setSlash] = useState(false);
   const [tableDialog, setTableDialog] = useState(false);
   const [tableRows, setTableRows] = useState(3);
@@ -670,7 +754,7 @@ function RichEditor({ note, setNote, upload }) {
       Underline,
       Link.configure({ openOnClick: false, autolink: true }),
       Image.configure({ inline: false, allowBase64: false }),
-      Table.configure({ resizable: true }),
+      Table.configure({ resizable: true, cellMinWidth: 160, renderWrapper: true }),
       TableRow,
       TableHeader,
       TableCell,
@@ -741,7 +825,7 @@ function RichEditor({ note, setNote, upload }) {
   );
 
   return (
-    <div className="richEditor">
+    <div className="richEditor" ref={rootRef}>
       <div className="editorToolbar">
         <button
           className={editor.isActive('bold') ? 'active' : ''}
@@ -860,29 +944,29 @@ function RichEditor({ note, setNote, upload }) {
           ▰×
         </button>
         <button onClick={addLink}>Link</button>
-        <button onClick={() => setTableDialog(true)}>Таблица</button>
+        <button onClick={() => setTableDialog(true)}>Table</button>
         {inTable && (
           <>
             <button onClick={() => editor.chain().focus().addRowBefore().run()}>
-              Строка выше
+              + Row above
             </button>
             <button onClick={() => editor.chain().focus().addRowAfter().run()}>
-              Строка ниже
+              + Row below
             </button>
             <button onClick={() => editor.chain().focus().deleteRow().run()}>
-              Удалить строку
+              − Row
             </button>
             <button onClick={() => editor.chain().focus().addColumnBefore().run()}>
-              Столбец слева
+              + Column left
             </button>
             <button onClick={() => editor.chain().focus().addColumnAfter().run()}>
-              Столбец справа
+              + Column right
             </button>
             <button onClick={() => editor.chain().focus().deleteColumn().run()}>
-              Удалить столбец
+              − Column
             </button>
             <button onClick={() => editor.chain().focus().deleteTable().run()}>
-              Удалить таблицу
+              Delete table
             </button>
           </>
         )}
@@ -897,7 +981,7 @@ function RichEditor({ note, setNote, upload }) {
             className="folderDialog"
             role="dialog"
             aria-modal="true"
-            aria-label="Вставить таблицу"
+            aria-label="Insert table"
             onMouseDown={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
               if (e.key === 'Escape') setTableDialog(false);
@@ -921,9 +1005,9 @@ function RichEditor({ note, setNote, upload }) {
               setTableDialog(false);
             }}
           >
-            <h2>Вставить таблицу</h2>
+            <h2>Insert table</h2>
             <label>
-              Строки (включая заголовок)
+              Rows (including header)
               <input
                 autoFocus
                 type="number"
@@ -935,7 +1019,7 @@ function RichEditor({ note, setNote, upload }) {
               />
             </label>
             <label>
-              Столбцы
+              Columns
               <input
                 type="number"
                 min="1"
@@ -947,9 +1031,9 @@ function RichEditor({ note, setNote, upload }) {
             </label>
             <div className="dialogActions">
               <button type="button" onClick={() => setTableDialog(false)}>
-                Отмена
+                Cancel
               </button>
-              <button type="submit">Вставить</button>
+              <button type="submit">Insert</button>
             </div>
           </form>
         </div>
@@ -1021,6 +1105,21 @@ function CoverPicker({ note, setNote }) {
 
       {open && (
         <div className="coverPicker">
+          <b>Solid colors</b>
+          <div className="gradientGrid">
+            {SOLID_COLORS.map((color) => (
+              <button
+                key={color}
+                title={color}
+                aria-label={`Cover color ${color}`}
+                style={{ background: color }}
+                onClick={() => {
+                  setNote({ ...note, meta: { ...note.meta, cover: color } });
+                  setOpen(false);
+                }}
+              />
+            ))}
+          </div>
           <b>Gradients</b>
 
           <div className="gradientGrid">
@@ -1038,11 +1137,7 @@ function CoverPicker({ note, setNote }) {
 
           <input
             placeholder="Or image URL"
-            value={
-              note.meta.cover?.startsWith('linear-gradient')
-                ? ''
-                : note.meta.cover || ''
-            }
+            value={isCoverBackground(note.meta.cover) ? '' : note.meta.cover || ''}
             onChange={(e) =>
               setNote({ ...note, meta: { ...note.meta, cover: e.target.value } })
             }
@@ -1075,9 +1170,9 @@ function EmojiPicker({ value, onChange }) {
 
       {open && (
         <div className="emojiPanel">
-          {EMOJIS.map((e, idx) => (
+          {[...new Set(EMOJIS)].map((e) => (
             <button
-              key={e + '-' + idx}
+              key={e}
               onClick={() => {
                 onChange(e);
                 setOpen(false);
@@ -1465,7 +1560,7 @@ function Notes() {
   };
 
   let coverStyle = note?.meta.cover
-    ? note.meta.cover.startsWith('linear-gradient')
+    ? isCoverBackground(note.meta.cover)
       ? { background: note.meta.cover }
       : { backgroundImage: `url(${note.meta.cover})` }
     : {};
@@ -1673,6 +1768,7 @@ function Notes() {
                     remarkPlugins={[remarkGfm]}
                     rehypePlugins={[rehypeEditorStyles]}
                     components={{
+                      table: ScrollableTable,
                       a: ({ href, children }) => (
                         <LinkCard href={href}>{children}</LinkCard>
                       ),

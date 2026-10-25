@@ -467,9 +467,26 @@ details[open] > summary .folderChevron {
   overflow-wrap: inherit;
 }
 
+.page .tableWrapper {
+  width: var(--table-available-width, 100%);
+  max-width: none;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  margin: 18px 0;
+}
+
 .page table {
   border-collapse: collapse;
-  width: 100%;
+  width: max-content;
+  min-width: var(--table-text-width, 100%);
+}
+
+.page td,
+.page th {
+  min-width: 160px;
+  max-width: 480px;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .page td,
@@ -1251,13 +1268,18 @@ html[data-theme='dark'] .tok-type {
 
 .tiptapEditor table {
   border-collapse: collapse;
-  width: 100%;
-  table-layout: fixed;
-  margin: 18px 0;
+  width: max-content;
+  min-width: var(--table-text-width, 100%);
+  table-layout: auto;
+  margin: 0;
 }
 
 .tiptapEditor td,
 .tiptapEditor th {
+  min-width: 160px;
+  max-width: 480px;
+  overflow-wrap: break-word;
+  word-break: normal;
   border: 1px solid var(--line);
   padding: 8px;
   vertical-align: top;
