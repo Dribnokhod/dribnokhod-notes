@@ -677,7 +677,59 @@ turndown.addRule('textHighlight', {
 /*  Rich editor                                                        */
 /* ------------------------------------------------------------------ */
 
+function useTableScrollHints(rootRef) {
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const update = () => {
+      root.querySelectorAll('.tableWrapper').forEach((wrapper) => {
+        wrapper.dataset.scrollLeft = String(wrapper.scrollLeft > 1);
+        wrapper.dataset.scrollRight = String(
+          wrapper.scrollWidth - wrapper.clientWidth - wrapper.scrollLeft > 1,
+        );
+      });
+    };
+    const resize = new ResizeObserver(update);
+    const observeTables = () => {
+      resize.disconnect();
+      resize.observe(root);
+      root.querySelectorAll('.tableWrapper, table').forEach((element) => {
+        resize.observe(element);
+      });
+      update();
+    };
+    const mutations = new MutationObserver(observeTables);
+    mutations.observe(root, { childList: true, subtree: true, characterData: true });
+    root.addEventListener('scroll', update, true);
+    observeTables();
+    return () => {
+      resize.disconnect();
+      mutations.disconnect();
+      root.removeEventListener('scroll', update, true);
+    };
+  }, [rootRef]);
+}
+
+function ScrollableTable({ children }) {
+  const rootRef = useRef(null);
+  useTableScrollHints(rootRef);
+  return (
+    <div ref={rootRef} className="tableScrollRegion">
+      <div
+        className="tableWrapper"
+        tabIndex={0}
+        role="region"
+        aria-label="Scrollable table"
+      >
+        <table>{children}</table>
+      </div>
+    </div>
+  );
+}
+
 function RichEditor({ note, setNote, upload }) {
+  const rootRef = useRef(null);
+  useTableScrollHints(rootRef);
   const [slash, setSlash] = useState(false);
   const [tableDialog, setTableDialog] = useState(false);
   const [tableRows, setTableRows] = useState(3);
@@ -766,7 +818,7 @@ function RichEditor({ note, setNote, upload }) {
   );
 
   return (
-    <div className="richEditor">
+    <div className="richEditor" ref={rootRef}>
       <div className="editorToolbar">
         <button
           className={editor.isActive('bold') ? 'active' : ''}
@@ -1709,16 +1761,7 @@ function Notes() {
                     remarkPlugins={[remarkGfm]}
                     rehypePlugins={[rehypeEditorStyles]}
                     components={{
-                      table: ({ children }) => (
-                        <div
-                          className="tableWrapper"
-                          tabIndex={0}
-                          role="region"
-                          aria-label="Scrollable table"
-                        >
-                          <table>{children}</table>
-                        </div>
-                      ),
+                      table: ScrollableTable,
                       a: ({ href, children }) => (
                         <LinkCard href={href}>{children}</LinkCard>
                       ),

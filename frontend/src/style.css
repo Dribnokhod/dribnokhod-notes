@@ -468,16 +468,41 @@ details[open] > summary .folderChevron {
 }
 
 .page .tableWrapper {
-  max-width: 100%;
+  --table-bleed: 24px;
+  --fade-left: 0px;
+  --fade-right: 0px;
+  width: calc(100% + var(--table-bleed));
+  max-width: none;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   margin: 18px 0;
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 var(--fade-left),
+    #000 calc(100% - var(--fade-right)),
+    transparent
+  );
+}
+
+.page .tableWrapper[data-scroll-left='true'] {
+  --fade-left: 32px;
+}
+
+.page .tableWrapper[data-scroll-right='true'] {
+  --fade-right: 40px;
+}
+
+@media (max-width: 720px) {
+  .page .tableWrapper {
+    --table-bleed: 16px;
+  }
 }
 
 .page table {
   border-collapse: collapse;
   width: max-content;
-  min-width: 100%;
+  min-width: calc(100% - var(--table-bleed));
 }
 
 .page td,
