@@ -865,7 +865,17 @@ def preview():
             url, timeout=4, headers={"User-Agent": "Mozilla/5.0"}, allow_redirects=True
         )
 
-        s = BeautifulSoup(r.text[:500000], "html.parser")
+        # Requests defaults text/html to Latin-1 even for UTF-8 pages. Let the
+        # HTML parser inspect the original bytes and any declared charset.
+        content = r.content[:500000]
+        encoding = requests.utils.get_encoding_from_headers(r.headers)
+        if "charset=" not in r.headers.get("Content-Type", "").lower():
+            try:
+                content.decode("utf-8")
+                encoding = "utf-8"
+            except UnicodeDecodeError:
+                encoding = None
+        s = BeautifulSoup(content, "html.parser", from_encoding=encoding)
 
         def prop(p, n):
             x = s.find("meta", attrs={"property": p}) or s.find(

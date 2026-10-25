@@ -25,6 +25,7 @@ import {
   FolderPlus,
   Save,
   Share2,
+  FileDown,
   Trash2,
   RotateCcw,
   LogOut,
@@ -1670,77 +1671,87 @@ function Notes() {
                 {edit && <CoverPicker note={note} setNote={setNote} />}
               </div>
 
-              {editor && (
-                <div className="adminbar">
-                  <button onClick={() => setEdit(!edit)}>
-                    {edit ? 'Done' : 'Edit'}
-                  </button>
-
-                  {edit && (
-                    <button className="save" onClick={save} disabled={savingFlag}>
-                      <Save size={15} /> Save
+              <div className="adminbar">
+                <button
+                  className="shareButton"
+                  aria-label="Экспорт в PDF"
+                  title="Экспорт в PDF"
+                  onClick={() => window.print()}
+                >
+                  <FileDown size={18} />
+                </button>
+                {editor && (
+                  <>
+                    <button onClick={() => setEdit(!edit)}>
+                      {edit ? 'Done' : 'Edit'}
                     </button>
-                  )}
 
-                  {member && (
-                    <>
-                      <button
-                        className="shareButton"
-                        aria-label="Поделиться"
-                        title="Поделиться"
-                        onClick={() => setSharing(note)}
-                      >
-                        <Share2 size={18} />
+                    {edit && (
+                      <button className="save" onClick={save} disabled={savingFlag}>
+                        <Save size={15} /> Save
                       </button>
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={!!note.meta.published}
-                          disabled={savingFlag}
-                          onChange={(e) => saveFlag('published', e.target.checked)}
-                        />{' '}
-                        Published
-                      </label>
+                    )}
 
-                      {admin && (
-                        <label title="Личные страницы видны только администратору">
+                    {member && (
+                      <>
+                        <button
+                          className="shareButton"
+                          aria-label="Поделиться"
+                          title="Поделиться"
+                          onClick={() => setSharing(note)}
+                        >
+                          <Share2 size={18} />
+                        </button>
+                        <label>
                           <input
                             type="checkbox"
-                            checked={!!note.meta.private}
+                            checked={!!note.meta.published}
                             disabled={savingFlag}
-                            onChange={(e) => saveFlag('private', e.target.checked)}
+                            onChange={(e) => saveFlag('published', e.target.checked)}
                           />{' '}
-                          Личная
+                          Published
                         </label>
-                      )}
 
-                      <label title="Эта страница откроется первой при переходе в заметки">
-                        <input
-                          type="checkbox"
-                          checked={!!note.meta.start_page}
-                          disabled={savingFlag}
-                          onChange={(e) => saveFlag('start_page', e.target.checked)}
-                        />{' '}
-                        Начальная страница
-                      </label>
+                        {admin && (
+                          <label title="Личные страницы видны только администратору">
+                            <input
+                              type="checkbox"
+                              checked={!!note.meta.private}
+                              disabled={savingFlag}
+                              onChange={(e) => saveFlag('private', e.target.checked)}
+                            />{' '}
+                            Личная
+                          </label>
+                        )}
 
-                      <button
-                        className="deleteNote"
-                        onClick={remove}
-                        title="Удалить страницу"
-                      >
-                        <Trash2 size={15} /> Удалить
-                      </button>
-                      <button
-                        onClick={() => move(note, 'note')}
-                        title="Переместить страницу"
-                      >
-                        <MoveRight size={15} /> Переместить
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
+                        <label title="Эта страница откроется первой при переходе в заметки">
+                          <input
+                            type="checkbox"
+                            checked={!!note.meta.start_page}
+                            disabled={savingFlag}
+                            onChange={(e) => saveFlag('start_page', e.target.checked)}
+                          />{' '}
+                          Начальная страница
+                        </label>
+
+                        <button
+                          className="deleteNote"
+                          onClick={remove}
+                          title="Удалить страницу"
+                        >
+                          <Trash2 size={15} /> Удалить
+                        </button>
+                        <button
+                          onClick={() => move(note, 'note')}
+                          title="Переместить страницу"
+                        >
+                          <MoveRight size={15} /> Переместить
+                        </button>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
 
               {edit ? (
                 <>
@@ -1785,6 +1796,16 @@ function Notes() {
                   </ReactMarkdown>
                 </>
               )}
+            </article>
+            <article className="printArticle">
+              <div className="printEmoji">{note.meta.emoji || '📄'}</div>
+              <h1>{note.meta.title}</h1>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeEditorStyles]}
+              >
+                {note.content}
+              </ReactMarkdown>
             </article>
           </>
         ) : (
