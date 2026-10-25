@@ -677,22 +677,29 @@ turndown.addRule('textHighlight', {
 /*  Rich editor                                                        */
 /* ------------------------------------------------------------------ */
 
-function useTableScrollHints(rootRef) {
+function useTableViewportWidth(rootRef) {
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
     const update = () => {
       root.querySelectorAll('.tableWrapper').forEach((wrapper) => {
-        wrapper.dataset.scrollLeft = String(wrapper.scrollLeft > 1);
-        wrapper.dataset.scrollRight = String(
-          wrapper.scrollWidth - wrapper.clientWidth - wrapper.scrollLeft > 1,
+        const textWidth = wrapper.parentElement.clientWidth;
+        const availableWidth = Math.max(
+          textWidth,
+          document.documentElement.clientWidth -
+            wrapper.getBoundingClientRect().left -
+            16,
         );
+        wrapper.style.setProperty('--table-text-width', `${textWidth}px`);
+        wrapper.style.setProperty('--table-available-width', `${availableWidth}px`);
       });
     };
     const resize = new ResizeObserver(update);
     const observeTables = () => {
       resize.disconnect();
       resize.observe(root);
+      const page = root.closest('.page');
+      if (page) resize.observe(page);
       root.querySelectorAll('.tableWrapper, table').forEach((element) => {
         resize.observe(element);
       });
@@ -700,19 +707,19 @@ function useTableScrollHints(rootRef) {
     };
     const mutations = new MutationObserver(observeTables);
     mutations.observe(root, { childList: true, subtree: true, characterData: true });
-    root.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
     observeTables();
     return () => {
       resize.disconnect();
       mutations.disconnect();
-      root.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
     };
   }, [rootRef]);
 }
 
 function ScrollableTable({ children }) {
   const rootRef = useRef(null);
-  useTableScrollHints(rootRef);
+  useTableViewportWidth(rootRef);
   return (
     <div ref={rootRef} className="tableScrollRegion">
       <div
@@ -729,7 +736,7 @@ function ScrollableTable({ children }) {
 
 function RichEditor({ note, setNote, upload }) {
   const rootRef = useRef(null);
-  useTableScrollHints(rootRef);
+  useTableViewportWidth(rootRef);
   const [slash, setSlash] = useState(false);
   const [tableDialog, setTableDialog] = useState(false);
   const [tableRows, setTableRows] = useState(3);
