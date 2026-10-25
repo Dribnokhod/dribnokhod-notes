@@ -907,7 +907,7 @@ function RichEditor({ note, setNote, upload }) {
               − Column
             </button>
             <button onClick={() => editor.chain().focus().deleteTable().run()}>
-              − Table
+              Delete table
             </button>
           </>
         )}
